@@ -1,0 +1,23 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "0.1.0",
+	"FriendlyName": "GlobalEventSystem",
+	"Description": "Loosely coupled internal event system plugin for the unreal engine.",
+	"Category": "Other",
+	"CreatedBy": "getnamo",
+	"CreatedByURL": "getnamo.com",
+	"DocsURL": "https://github.com/getnamo/global-event-system-ue4",
+	"MarketplaceURL": "",
+	"SupportURL": "https://github.com/getnamo/global-event-system-ue4/issues",
+	"CanContainContent": true,
+	"IsBetaVersion": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "GlobalEventSystem",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	]
+}
