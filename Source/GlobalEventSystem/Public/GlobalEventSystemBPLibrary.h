@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Kismet/BlueprintFunctionLibrary.h"
+#include "GESHandler.h"
 #include "GlobalEventSystemBPLibrary.generated.h"
 
 /* 
@@ -14,22 +15,26 @@ class UGlobalEventSystemBPLibrary : public UBlueprintFunctionLibrary
 	GENERATED_UCLASS_BODY()
 
 	UFUNCTION(BlueprintCallable, meta = (Keywords = "ges bind create listen event", WorldContext = "WorldContextObject"), Category = "GlobalEventSystem")
-	static void GESBindEvent(UObject* WorldContextObject, const FString& ReceivingFunction, const FString& TargetFunction, const FString& TargetDomain = TEXT("global.default"));
+	static void GESUnbindEvent(UObject* WorldContextObject, const FString& TargetDomain = TEXT("global.default"), const FString& TargetFunction = TEXT(""), const FString& ReceivingFunction = TEXT(""));
+
+	UFUNCTION(BlueprintCallable, meta = (Keywords = "ges bind create listen event", WorldContext = "WorldContextObject"), Category = "GlobalEventSystem")
+	static void GESBindEvent(UObject* WorldContextObject, const FString& TargetDomain = TEXT("global.default"), const FString& TargetFunction = TEXT(""), const FString& ReceivingFunction = TEXT(""));
 
 
 	//todo: try emit auto cast to property maybe
 	UFUNCTION(BlueprintCallable, CustomThunk, Category = "GlobalEventSystem", meta = (CustomStructureParam = "ParameterData"))
-	static void GESEmitEvent(const FString& TargetFunction, const FString& TargetDomain = TEXT("global.default"), UProperty* ParameterData = nullptr);
+	static void GESEmitEvent(const FString& TargetDomain = TEXT("global.default"), const FString& TargetFunction = TEXT(""), UProperty* ParameterData = nullptr);
 
 	//Convert property into c++ accessible form
 	DECLARE_FUNCTION(execGESEmitEvent)
 	{
 		Stack.MostRecentProperty = nullptr;
-		FString TargetFunction;
-		Stack.StepCompiledIn<UStrProperty>(&TargetFunction);
 
 		FString TargetDomain;
 		Stack.StepCompiledIn<UStrProperty>(&TargetDomain);
+
+		FString TargetFunction;
+		Stack.StepCompiledIn<UStrProperty>(&TargetFunction);
 
 		//Determine wildcard property
 		Stack.Step(Stack.Object, NULL);
@@ -103,8 +108,7 @@ private:
 	static void HandleEmit(const FString& TargetFunction, double Data, const FString& TargetDomain);
 	static void HandleEmit(const FString& TargetFunction, int64 Data, const FString& TargetDomain);
 	static void HandleEmit(const FString& TargetFunction, bool Data, const FString& TargetDomain);
-
-
 	//todo add support for array type props
+
 
 };
