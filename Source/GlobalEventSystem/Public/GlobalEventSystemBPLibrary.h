@@ -6,27 +6,105 @@
 #include "GlobalEventSystemBPLibrary.generated.h"
 
 /* 
-*	Function library class.
-*	Each function in it is expected to be static and represents blueprint node that can be called in any blueprint.
-*
-*	When declaring function you can define metadata for the node. Key function specifiers will be BlueprintPure and BlueprintCallable.
-*	BlueprintPure - means the function does not affect the owning object in any way and thus creates a node without Exec pins.
-*	BlueprintCallable - makes a function which can be executed in Blueprints - Thus it has Exec pins.
-*	DisplayName - full name of the node, shown when you mouse over the node and in the blueprint drop down menu.
-*				Its lets you name the node using characters not allowed in C++ function names.
-*	CompactNodeTitle - the word(s) that appear on the node.
-*	Keywords -	the list of keywords that helps you to find node when you search for it using Blueprint drop-down menu. 
-*				Good example is "Print String" node which you can find also by using keyword "log".
-*	Category -	the category your node will be under in the Blueprint drop-down menu.
-*
-*	For more info on custom blueprint nodes visit documentation:
-*	https://wiki.unrealengine.com/Custom_Blueprint_Node_Creation
+* Core Global Event System functions. Call anywhere
 */
 UCLASS()
 class UGlobalEventSystemBPLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()
 
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Execute Sample function", Keywords = "GlobalEventSystem sample test testing"), Category = "GlobalEventSystemTesting")
-	static float GlobalEventSystemSampleFunction(float Param);
+	UFUNCTION(BlueprintCallable, meta = (Keywords = "ges bind create listen event", WorldContext = "WorldContextObject"), Category = "GlobalEventSystem")
+	static void GESBindEvent(UObject* WorldContextObject, const FString& ReceivingFunction, const FString& TargetFunction, const FString& TargetDomain = TEXT("global.default"));
+
+
+	//todo: try emit auto cast to property maybe
+	UFUNCTION(BlueprintCallable, CustomThunk, Category = "GlobalEventSystem", meta = (CustomStructureParam = "ParameterData"))
+	static void GESEmitEvent(const FString& TargetFunction, const FString& TargetDomain = TEXT("global.default"), UProperty* ParameterData = nullptr);
+
+	//Convert property into c++ accessible form
+	DECLARE_FUNCTION(execGESEmitEvent)
+	{
+		Stack.MostRecentProperty = nullptr;
+		FString TargetFunction;
+		Stack.StepCompiledIn<UStrProperty>(&TargetFunction);
+
+		FString TargetDomain;
+		Stack.StepCompiledIn<UStrProperty>(&TargetDomain);
+
+		//Determine wildcard property
+		Stack.Step(Stack.Object, NULL);
+		UProperty* ParameterProp = Cast<UProperty>(Stack.MostRecentProperty);
+		void* PropPtr = Stack.MostRecentPropertyAddress;
+		
+		if (ParameterProp->IsA<UStructProperty>())
+		{
+			UStructProperty* StructProperty = ExactCast<UStructProperty>(ParameterProp);
+			P_FINISH;
+			P_NATIVE_BEGIN;
+			HandleEmit(TargetFunction, StructProperty->Struct, PropPtr, TargetDomain);
+			P_NATIVE_END;
+			return;
+		}
+		else if (ParameterProp->IsA<UStrProperty>())
+		{
+			UStrProperty* StrProperty = Cast<UStrProperty>(ParameterProp);
+			FString Data = StrProperty->GetPropertyValue(PropPtr);
+			P_FINISH;
+			P_NATIVE_BEGIN;
+			HandleEmit(TargetFunction, Data, TargetDomain);
+			P_NATIVE_END;
+			return;
+		}
+		else if (ParameterProp->IsA<UNumericProperty>())
+		{
+			UNumericProperty* NumericProperty = Cast<UNumericProperty>(ParameterProp);
+			if (NumericProperty->IsFloatingPoint())
+			{
+				double Data = NumericProperty->GetFloatingPointPropertyValue(PropPtr);
+				P_FINISH;
+				P_NATIVE_BEGIN;
+				HandleEmit(TargetFunction, Data, TargetDomain);
+				P_NATIVE_END;
+				return;
+			}
+			else
+			{
+				int64 Data = NumericProperty->GetSignedIntPropertyValue(PropPtr);
+				P_FINISH;
+				P_NATIVE_BEGIN;
+				HandleEmit(TargetFunction, Data, TargetDomain);
+				P_NATIVE_END;
+				return;
+			}
+		}
+		else if (ParameterProp->IsA<UBoolProperty>())
+		{
+			UBoolProperty* BoolProperty = Cast<UBoolProperty>(ParameterProp);
+			bool Data = BoolProperty->GetPropertyValue(PropPtr);
+			P_FINISH;
+			P_NATIVE_BEGIN;
+			HandleEmit(TargetFunction, Data, TargetDomain);
+			P_NATIVE_END;
+			return;
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("GESEmitEvent Parameter type unsupported, event not emitted."));
+			P_FINISH;
+		}
+	}
+
+
+private:
+
+	//overloaded emits
+	static void HandleEmit(const FString& TargetFunction, UStruct* DataStruct, void* DataStructPtr, const FString& TargetDomain);
+	static void HandleEmit(const FString& TargetFunction, const FString& Data, const FString& TargetDomain);
+	static void HandleEmit(const FString& TargetFunction, double Data, const FString& TargetDomain);
+	static void HandleEmit(const FString& TargetFunction, int64 Data, const FString& TargetDomain);
+	static void HandleEmit(const FString& TargetFunction, bool Data, const FString& TargetDomain);
+
+
+	//todo add support for array type props
+
 };
