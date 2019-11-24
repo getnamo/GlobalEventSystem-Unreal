@@ -32,9 +32,18 @@ void UGlobalEventSystemBPLibrary::HandleEmit(const FGESEmitData& EmitData)
 	FGESHandler::DefaultHandler()->EmitEvent(EmitData);
 }
 
-void UGlobalEventSystemBPLibrary::GESEmitEvent(bool bPinned /*= false*/, const FString& Domain /*= TEXT("global.default")*/, const FString& Event /*= TEXT("")*/, UProperty* ParameterData /*= nullptr*/)
+void UGlobalEventSystemBPLibrary::GESEmitEventOneParam(bool bPinned /*= false*/, const FString& Domain /*= TEXT("global.default")*/, const FString& Event /*= TEXT("")*/, UProperty* ParameterData /*= nullptr*/)
 {
 	//this never gets called due to custom thunk
+}
+
+void UGlobalEventSystemBPLibrary::GESEmitEvent(bool bPinned /*= false*/, const FString& Domain /*= TEXT("global.default")*/, const FString& EventName /*= TEXT("")*/)
+{
+	FGESEmitData EmitData;
+	EmitData.bPinned = bPinned;
+	EmitData.Domain = Domain;
+	EmitData.Event = EventName;
+	FGESHandler::DefaultHandler()->EmitEvent(EmitData);
 }
 
 void UGlobalEventSystemBPLibrary::GESUnpinEvent(UObject* WorldContextObject, const FString& Domain /*= TEXT("global.default")*/, const FString& Event /*= TEXT("")*/)

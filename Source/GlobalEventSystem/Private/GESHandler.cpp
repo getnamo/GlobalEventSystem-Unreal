@@ -55,8 +55,8 @@ void FGESHandler::AddListener(const FString& Domain, const FString& EventName, c
 		{
 			FGESEmitData EmitData;
 			
-			EmitData.TargetDomain = Domain;
-			EmitData.TargetFunction = EventName;
+			EmitData.Domain = Domain;
+			EmitData.Event = EventName;
 
 			EmitData.Property = Event.PinnedData.Property;
 			EmitData.PropertyPtr = Event.PinnedData.PropertyPtr;
@@ -92,35 +92,40 @@ void FGESHandler::RemoveListener(const FString& Domain, const FString& Event, co
 
 void FGESHandler::EmitToListenersWithData(const FGESEmitData& EmitData, TFunction<void(const FGESEventListener&)> DataFillCallback)
 {
-	FString KeyString = Key(EmitData.TargetDomain, EmitData.TargetFunction);
+	FString KeyString = Key(EmitData.Domain, EmitData.Event);
 	if (!FunctionMap.Contains(KeyString))
 	{
-		CreateEvent(EmitData.TargetDomain, EmitData.TargetFunction, false);
+		CreateEvent(EmitData.Domain, EmitData.Event, false);
 	}
 	FGESEvent& Event = FunctionMap[KeyString];
 
-	//Warn if we're trying to pin a new event without unpinning old one
-	if (Event.bPinned && EmitData.bPinned)
+	//is there a property to pin?
+	if (EmitData.Property)
 	{
-		//cleanup if different
-		if (EmitData.Property != Event.PinnedData.Property ||
-			EmitData.PropertyPtr != Event.PinnedData.PropertyPtr)
+		//Warn if we're trying to pin a new event without unpinning old one
+		if (Event.bPinned && EmitData.bPinned)
+		{
+			//cleanup if different
+			if (EmitData.Property != Event.PinnedData.Property ||
+				EmitData.PropertyPtr != Event.PinnedData.PropertyPtr)
+			{
+				Event.PinnedData.CleanupPinnedData();
+			}
+			Event.PinnedData.Property = EmitData.Property;
+			Event.PinnedData.PropertyPtr = EmitData.PropertyPtr;
+			Event.PinnedData.CopyPropertyToPinnedBuffer();
+			//UE_LOG(LogTemp, Warning, TEXT("FGESHandler::EmitToListenersWithData Emitted a pinned event to an already pinned event. Pinned data updated."));
+		}
+		if (!Event.bPinned && EmitData.bPinned)
 		{
 			Event.PinnedData.CleanupPinnedData();
+			Event.PinnedData.Property = EmitData.Property;
+			Event.PinnedData.PropertyPtr = EmitData.PropertyPtr;
+			Event.PinnedData.CopyPropertyToPinnedBuffer();
 		}
-		Event.PinnedData.Property = EmitData.Property;
-		Event.PinnedData.PropertyPtr = EmitData.PropertyPtr;
-		Event.PinnedData.CopyPropertyToPinnedBuffer();
-		//UE_LOG(LogTemp, Warning, TEXT("FGESHandler::EmitToListenersWithData Emitted a pinned event to an already pinned event. Pinned data updated."));
 	}
-	if (!Event.bPinned && EmitData.bPinned)
-	{
-		Event.bPinned = EmitData.bPinned;
-		Event.PinnedData.CleanupPinnedData();
-		Event.PinnedData.Property = EmitData.Property;
-		Event.PinnedData.PropertyPtr = EmitData.PropertyPtr;
-		Event.PinnedData.CopyPropertyToPinnedBuffer();
-	}
+	Event.bPinned = EmitData.bPinned;
+
 
 	//only emit to this target
 	if (EmitData.SpecificTarget)
@@ -231,7 +236,33 @@ void FGESHandler::EmitEvent(const FGESEmitData& EmitData)
 	UProperty* ParameterProp = EmitData.Property;
 	void* PropPtr = EmitData.PropertyPtr;
 
-	if (ParameterProp->IsA<UStructProperty>())
+	//no params specified
+	if (ParameterProp == nullptr)
+	{
+		EmitToListenersWithData(EmitData, [&EmitData](const FGESEventListener& Listener)
+		{
+			TFieldIterator<UProperty> Iterator(Listener.Function);
+
+			TArray<UProperty*> Properties;
+			while (Iterator && (Iterator->PropertyFlags & CPF_Parm))
+			{
+				UProperty* Prop = *Iterator;
+				Properties.Add(Prop);
+				++Iterator;
+			}
+			if (Properties.Num() == 0)
+			{
+				Listener.Receiver->ProcessEvent(Listener.Function, nullptr);
+			}
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("FGESHandler::EmitEvent %s tried to emit an empty event to %s receiver expecting parameters."), 
+					*EmitData.Event,
+					*Listener.Receiver->GetFullName());
+			}
+		});
+	}
+	else if (ParameterProp->IsA<UStructProperty>())
 	{
 		UStructProperty* StructProperty = ExactCast<UStructProperty>(ParameterProp);
 		EmitEvent(EmitData, StructProperty->Struct, PropPtr);
@@ -267,6 +298,10 @@ void FGESHandler::EmitEvent(const FGESEmitData& EmitData)
 		EmitEvent(EmitData, Data);
 		return;
 	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("FGESHandler::EmitEvent Unsupported parameter"));
+	}
 }
 
 FString FGESHandler::Key(const FString& Domain, const FString& Event)
@@ -282,13 +317,13 @@ FGESHandler::FGESHandler()
 FGESHandler::~FGESHandler()
 {
 	//todo: maybe cleanup via emitting shutdown events?
-	for (TPair<FString, FGESEvent> Pair : FunctionMap)
+	/*for (TPair<FString, FGESEvent> Pair : FunctionMap)
 	{
 		if (Pair.Value.bPinned)
 		{
 			Pair.Value.PinnedData.CleanupPinnedData();
 		}
-	}
+	}*/
 	FunctionMap.Empty();
 }
 

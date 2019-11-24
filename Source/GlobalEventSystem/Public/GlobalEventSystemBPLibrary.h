@@ -34,7 +34,13 @@ class UGlobalEventSystemBPLibrary : public UBlueprintFunctionLibrary
 	* emitted.
 	*/
 	UFUNCTION(BlueprintCallable, CustomThunk, Category = "GlobalEventSystem", meta = (CustomStructureParam = "ParameterData"))
-	static void GESEmitEvent(bool bPinned = false, const FString& Domain = TEXT("global.default"), const FString& Event = TEXT(""), UProperty* ParameterData = nullptr);
+	static void GESEmitEventOneParam(bool bPinned = false, const FString& Domain = TEXT("global.default"), const FString& Event = TEXT(""), UProperty* ParameterData = nullptr);
+
+	/** 
+	* Just emits the event with no additional data
+	*/
+	UFUNCTION(BlueprintCallable, Category = "GlobalEventSystem")
+	static void GESEmitEvent(bool bPinned = false, const FString& Domain = TEXT("global.default"), const FString& Event = TEXT(""));
 
 	/** 
 	* If an event was pinned, this will unpin it. If you wish to re-pin a different event you need to unpin the old event first.
@@ -43,26 +49,26 @@ class UGlobalEventSystemBPLibrary : public UBlueprintFunctionLibrary
 	static void GESUnpinEvent(UObject* WorldContextObject, const FString& Domain = TEXT("global.default"), const FString& Event = TEXT(""));
 
 	//Convert property into c++ accessible form
-	DECLARE_FUNCTION(execGESEmitEvent)
+	DECLARE_FUNCTION(execGESEmitEventOneParam)
 	{
 		Stack.MostRecentProperty = nullptr;
-		FGESEmitData Emit;
+		FGESEmitData EmitData;
 
-		Stack.StepCompiledIn<UBoolProperty>(&Emit.bPinned);
-		Stack.StepCompiledIn<UStrProperty>(&Emit.TargetDomain);
-		Stack.StepCompiledIn<UStrProperty>(&Emit.TargetFunction);
+		Stack.StepCompiledIn<UBoolProperty>(&EmitData.bPinned);
+		Stack.StepCompiledIn<UStrProperty>(&EmitData.Domain);
+		Stack.StepCompiledIn<UStrProperty>(&EmitData.Event);
 
 		//Determine wildcard property
 		Stack.Step(Stack.Object, NULL);
 		UProperty* ParameterProp = Cast<UProperty>(Stack.MostRecentProperty);
 		void* PropPtr = Stack.MostRecentPropertyAddress;
 
-		Emit.Property = ParameterProp;
-		Emit.PropertyPtr = PropPtr;
+		EmitData.Property = ParameterProp;
+		EmitData.PropertyPtr = PropPtr;
 
 		P_FINISH;
 		P_NATIVE_BEGIN;
-		HandleEmit(Emit);
+		HandleEmit(EmitData);
 		P_NATIVE_END;
 	}
 

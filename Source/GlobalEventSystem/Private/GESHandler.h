@@ -34,6 +34,11 @@ struct FGESPinnedData
 	void* PropertyPtr;
 	TArray<uint8> PropertyData;
 
+	FGESPinnedData()
+	{
+		Property = nullptr;
+		PropertyPtr = nullptr;
+	}
 	void CopyPropertyToPinnedBuffer();
 	void CleanupPinnedData();
 };
@@ -48,7 +53,10 @@ struct FGESEvent
 	FString Event;
 	TArray<FGESEventListener> Listeners;
 
-	FGESEvent() { }
+	FGESEvent() 
+	{ 
+		PinnedData = FGESPinnedData();
+	}
 
 	//todo: add restrictions e.g. must apply interface, 
 	//	should this be a callback to creator of function/domain?
@@ -58,8 +66,8 @@ struct FGESEvent
 struct FGESEmitData
 {
 	bool bPinned;
-	FString TargetDomain;
-	FString TargetFunction;
+	FString Domain;
+	FString Event;
 	UProperty* Property;
 	void* PropertyPtr;
 
