@@ -35,6 +35,7 @@ struct FGESPinnedData
 	TArray<uint8> PropertyData;
 
 	void CopyPropertyToPinnedBuffer();
+	void CleanupPinnedData();
 };
 
 struct FGESEvent
@@ -43,8 +44,8 @@ struct FGESEvent
 	bool bPinned;
 	FGESPinnedData PinnedData;
 
-	FString TargetDomain;
-	FString TargetFunction;
+	FString Domain;
+	FString Event;
 	TArray<FGESEventListener> Listeners;
 
 	FGESEvent() { }
@@ -83,27 +84,27 @@ public:
 	/**
 	*	Create an event in TargetDomain.TargetFunction. Does nothing if already existing
 	*/
-	void CreateEvent(const FString& TargetDomain, const FString& TargetFunction, bool bPinned = false);
+	void CreateEvent(const FString& Domain, const FString& Event, bool bPinned = false);
 	
 	/**
 	*	Delete an event in TargetDomain.TargetFunction. Does nothing if missing
 	*/
-	void DeleteEvent(const FString& TargetDomain, const FString& TargetFunction);
+	void DeleteEvent(const FString& Domain, const FString& Event);
 
 	/** 
 	*	Removes the pinning of the event for future listeners.
 	*/
-	void UnpinEvent(const FString& TargetDomain, const FString& TargetFunction);
+	void UnpinEvent(const FString& Domain, const FString& Event);
 
 	/** 
 	* Listen to an event in TargetDomain.TargetFunction
 	*/
-	void AddListener(const FString& TargetDomain, const FString& TargetFunction, const FGESEventListener& Listener);
+	void AddListener(const FString& Domain, const FString& Event, const FGESEventListener& Listener);
 	
 	/**
 	* Stop listening to an event in TargetDomain.TargetFunction
 	*/
-	void RemoveListener(const FString& TargetDomain, const FString& TargetFunction, const FGESEventListener& Listener);
+	void RemoveListener(const FString& Domain, const FString& Event, const FGESEventListener& Listener);
 
 	/**
 	* Emit event in TargetDomain.TargetFunction with Struct type parameter data.
@@ -119,7 +120,7 @@ public:
 	void EmitEvent(const FGESEmitData& EmitData);
 
 
-	static FString Key(const FString& TargetDomain, const FString& TargetFunction);
+	static FString Key(const FString& Domain, const FString& Event);
 
 	FGESHandler();
 	~FGESHandler();

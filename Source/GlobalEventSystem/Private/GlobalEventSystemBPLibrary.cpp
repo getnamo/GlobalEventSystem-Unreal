@@ -8,23 +8,23 @@ UGlobalEventSystemBPLibrary::UGlobalEventSystemBPLibrary(const FObjectInitialize
 {
 }
 
-void UGlobalEventSystemBPLibrary::GESUnbindEvent(UObject* WorldContextObject, const FString& TargetDomain /*= TEXT("global.default")*/, const FString& TargetFunction /*= TEXT("")*/, const FString& ReceivingFunction /*= TEXT("")*/)
+void UGlobalEventSystemBPLibrary::GESUnbindEvent(UObject* WorldContextObject, const FString& Domain /*= TEXT("global.default")*/, const FString& Event /*= TEXT("")*/, const FString& ReceivingFunction /*= TEXT("")*/)
 {
 	FGESEventListener Listener;
 	Listener.Receiver = WorldContextObject;
 	Listener.FunctionName = ReceivingFunction;
 
-	FGESHandler::DefaultHandler()->RemoveListener(TargetDomain, TargetFunction, Listener);
+	FGESHandler::DefaultHandler()->RemoveListener(Domain, Event, Listener);
 }
 
-void UGlobalEventSystemBPLibrary::GESBindEvent(UObject* WorldContextObject, const FString& TargetDomain /*= TEXT("global.default")*/, const FString& TargetFunction /*= TEXT("")*/, const FString& ReceivingFunction /*= TEXT("")*/)
+void UGlobalEventSystemBPLibrary::GESBindEvent(UObject* WorldContextObject, const FString& Domain /*= TEXT("global.default")*/, const FString& Event /*= TEXT("")*/, const FString& ReceivingFunction /*= TEXT("")*/)
 {
 	FGESEventListener Listener;
 	Listener.Receiver = WorldContextObject;
 	Listener.FunctionName = ReceivingFunction;
 	Listener.LinkFunction();	//this makes the function valid by finding a reference to it
 
-	FGESHandler::DefaultHandler()->AddListener(TargetDomain, TargetFunction, Listener);
+	FGESHandler::DefaultHandler()->AddListener(Domain, Event, Listener);
 }
 
 void UGlobalEventSystemBPLibrary::HandleEmit(const FGESEmitData& EmitData)
@@ -32,8 +32,13 @@ void UGlobalEventSystemBPLibrary::HandleEmit(const FGESEmitData& EmitData)
 	FGESHandler::DefaultHandler()->EmitEvent(EmitData);
 }
 
-void UGlobalEventSystemBPLibrary::GESEmitEvent(bool bPinned /*= false*/, const FString& TargetDomain /*= TEXT("global.default")*/, const FString& TargetFunction /*= TEXT("")*/, UProperty* ParameterData /*= nullptr*/)
+void UGlobalEventSystemBPLibrary::GESEmitEvent(bool bPinned /*= false*/, const FString& Domain /*= TEXT("global.default")*/, const FString& Event /*= TEXT("")*/, UProperty* ParameterData /*= nullptr*/)
 {
 	//this never gets called due to custom thunk
+}
+
+void UGlobalEventSystemBPLibrary::GESUnpinEvent(UObject* WorldContextObject, const FString& Domain /*= TEXT("global.default")*/, const FString& Event /*= TEXT("")*/)
+{
+	FGESHandler::DefaultHandler()->UnpinEvent(Domain, Event);
 }
 

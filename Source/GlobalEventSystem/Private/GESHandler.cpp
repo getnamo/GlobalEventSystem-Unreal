@@ -12,23 +12,23 @@ TSharedPtr<FGESHandler> FGESHandler::DefaultHandler()
 	return FGESHandler::PrivateDefaultHandler;
 }
 
-void FGESHandler::CreateEvent(const FString& TargetDomain, const FString& TargetFunction, bool bPinned /*=false*/)
+void FGESHandler::CreateEvent(const FString& Domain, const FString& Event, bool bPinned /*= false*/)
 {
 	FGESEvent CreatedFunction;
-	CreatedFunction.TargetDomain = TargetDomain;
-	CreatedFunction.TargetFunction = TargetFunction;
+	CreatedFunction.Domain = Domain;
+	CreatedFunction.Event = Event;
 	CreatedFunction.bPinned = bPinned;
-	FunctionMap.Add(Key(TargetDomain, TargetFunction), CreatedFunction);
+	FunctionMap.Add(Key(Domain, Event), CreatedFunction);
 }
 
-void FGESHandler::DeleteEvent(const FString& TargetDomain, const FString& TargetFunction)
+void FGESHandler::DeleteEvent(const FString& Domain, const FString& Event)
 {
-	FunctionMap.Remove(Key(TargetDomain, TargetFunction));
+	FunctionMap.Remove(Key(Domain, Event));
 }
 
-void FGESHandler::UnpinEvent(const FString& TargetDomain, const FString& TargetFunction)
+void FGESHandler::UnpinEvent(const FString& Domain, const FString& EventName)
 {
-	FString KeyString = Key(TargetDomain, TargetFunction);
+	FString KeyString = Key(Domain, EventName);
 	if (FunctionMap.Contains(KeyString))
 	{
 		FGESEvent& Event = FunctionMap[KeyString];
@@ -38,12 +38,12 @@ void FGESHandler::UnpinEvent(const FString& TargetDomain, const FString& TargetF
 	}
 }
 
-void FGESHandler::AddListener(const FString& TargetDomain, const FString& TargetFunction, const FGESEventListener& Listener)
+void FGESHandler::AddListener(const FString& Domain, const FString& EventName, const FGESEventListener& Listener)
 {
-	FString KeyString = Key(TargetDomain, TargetFunction);
+	FString KeyString = Key(Domain, EventName);
 	if (!FunctionMap.Contains(KeyString))
 	{
-		CreateEvent(TargetDomain, TargetFunction);
+		CreateEvent(Domain, EventName);
 	}
 	if (Listener.IsValidListener())
 	{
@@ -55,8 +55,8 @@ void FGESHandler::AddListener(const FString& TargetDomain, const FString& Target
 		{
 			FGESEmitData EmitData;
 			
-			EmitData.TargetDomain = TargetDomain;
-			EmitData.TargetFunction = TargetFunction;
+			EmitData.TargetDomain = Domain;
+			EmitData.TargetFunction = EventName;
 
 			EmitData.Property = Event.PinnedData.Property;
 			EmitData.PropertyPtr = Event.PinnedData.PropertyPtr;
@@ -70,18 +70,18 @@ void FGESHandler::AddListener(const FString& TargetDomain, const FString& Target
 	{
 		if (Listener.Receiver->IsValidLowLevel())
 		{
-			UE_LOG(LogTemp, Warning, TEXT("FGESHandler::AddListener Warning: \n%s does not have the function '%s'. Attempted to bind to GESEvent %s.%s"), *Listener.Receiver->GetFullName(), *Listener.FunctionName, *TargetDomain, *TargetFunction);
+			UE_LOG(LogTemp, Warning, TEXT("FGESHandler::AddListener Warning: \n%s does not have the function '%s'. Attempted to bind to GESEvent %s.%s"), *Listener.Receiver->GetFullName(), *Listener.FunctionName, *Domain, *EventName);
 		}
 		else
 		{
-			UE_LOG(LogTemp, Warning, TEXT("FGESHandler::AddListener: (invalid object) does not have the function '%s'. Attempted to bind to GESEvent %s.%s"), *Listener.FunctionName, *TargetDomain, *TargetFunction);
+			UE_LOG(LogTemp, Warning, TEXT("FGESHandler::AddListener: (invalid object) does not have the function '%s'. Attempted to bind to GESEvent %s.%s"), *Listener.FunctionName, *Domain, *EventName);
 		}
 	}
 }
 
-void FGESHandler::RemoveListener(const FString& TargetDomain, const FString& TargetFunction, const FGESEventListener& Listener)
+void FGESHandler::RemoveListener(const FString& Domain, const FString& Event, const FGESEventListener& Listener)
 {
-	FString KeyString = Key(TargetDomain, TargetFunction);
+	FString KeyString = Key(Domain, Event);
 	if (!FunctionMap.Contains(KeyString))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("FGESHandler::RemoveListener, tried to remove a listener from an event that doesn't exist. Ignored."));
@@ -98,9 +98,25 @@ void FGESHandler::EmitToListenersWithData(const FGESEmitData& EmitData, TFunctio
 		CreateEvent(EmitData.TargetDomain, EmitData.TargetFunction, false);
 	}
 	FGESEvent& Event = FunctionMap[KeyString];
+
+	//Warn if we're trying to pin a new event without unpinning old one
+	if (Event.bPinned && EmitData.bPinned)
+	{
+		//cleanup if different
+		if (EmitData.Property != Event.PinnedData.Property ||
+			EmitData.PropertyPtr != Event.PinnedData.PropertyPtr)
+		{
+			Event.PinnedData.CleanupPinnedData();
+		}
+		Event.PinnedData.Property = EmitData.Property;
+		Event.PinnedData.PropertyPtr = EmitData.PropertyPtr;
+		Event.PinnedData.CopyPropertyToPinnedBuffer();
+		//UE_LOG(LogTemp, Warning, TEXT("FGESHandler::EmitToListenersWithData Emitted a pinned event to an already pinned event. Pinned data updated."));
+	}
 	if (!Event.bPinned && EmitData.bPinned)
 	{
 		Event.bPinned = EmitData.bPinned;
+		Event.PinnedData.CleanupPinnedData();
 		Event.PinnedData.Property = EmitData.Property;
 		Event.PinnedData.PropertyPtr = EmitData.PropertyPtr;
 		Event.PinnedData.CopyPropertyToPinnedBuffer();
@@ -253,9 +269,9 @@ void FGESHandler::EmitEvent(const FGESEmitData& EmitData)
 	}
 }
 
-FString FGESHandler::Key(const FString& TargetDomain, const FString& TargetFunction)
+FString FGESHandler::Key(const FString& Domain, const FString& Event)
 {
-	return TargetDomain + TEXT(".") + TargetFunction;
+	return Domain + TEXT(".") + Event;
 }
 
 FGESHandler::FGESHandler()
@@ -266,16 +282,35 @@ FGESHandler::FGESHandler()
 FGESHandler::~FGESHandler()
 {
 	//todo: maybe cleanup via emitting shutdown events?
+	for (TPair<FString, FGESEvent> Pair : FunctionMap)
+	{
+		if (Pair.Value.bPinned)
+		{
+			Pair.Value.PinnedData.CleanupPinnedData();
+		}
+	}
 	FunctionMap.Empty();
 }
 
 void FGESPinnedData::CopyPropertyToPinnedBuffer()
 {
 	//Copy this property data to temp
+	Property->AddToRoot();
 	int32 Num = Property->GetSize();
 	PropertyData.SetNumUninitialized(Num);
 	FMemory::Memcpy(PropertyData.GetData(), PropertyPtr, Num);
 
 	//reset pointer to new copy
 	PropertyPtr = PropertyData.GetData();
+}
+
+void FGESPinnedData::CleanupPinnedData()
+{
+	if (Property != nullptr && Property->IsValidLowLevel())
+	{
+		Property->RemoveFromRoot();
+	}
+	PropertyData.Empty();
+	Property = nullptr;
+	PropertyPtr = nullptr;
 }
