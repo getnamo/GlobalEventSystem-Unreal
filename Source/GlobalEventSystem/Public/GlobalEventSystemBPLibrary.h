@@ -6,8 +6,10 @@
 #include "GESHandler.h"
 #include "GlobalEventSystemBPLibrary.generated.h"
 
+
+
 /* 
-* Core Global Event System functions. Call anywhere
+* Core Global Event System functions. Call anywhere.
 */
 UCLASS()
 class UGlobalEventSystemBPLibrary : public UBlueprintFunctionLibrary
@@ -23,92 +25,34 @@ class UGlobalEventSystemBPLibrary : public UBlueprintFunctionLibrary
 
 	//todo: try emit auto cast to property maybe
 	UFUNCTION(BlueprintCallable, CustomThunk, Category = "GlobalEventSystem", meta = (CustomStructureParam = "ParameterData"))
-	static void GESEmitEvent(const FString& TargetDomain = TEXT("global.default"), const FString& TargetFunction = TEXT(""), UProperty* ParameterData = nullptr);
+	static void GESEmitEvent(bool bPinned = false, const FString& TargetDomain = TEXT("global.default"), const FString& TargetFunction = TEXT(""), UProperty* ParameterData = nullptr);
 
 	//Convert property into c++ accessible form
 	DECLARE_FUNCTION(execGESEmitEvent)
 	{
 		Stack.MostRecentProperty = nullptr;
+		FGESEmitData Emit;
 
-		FString TargetDomain;
-		Stack.StepCompiledIn<UStrProperty>(&TargetDomain);
-
-		FString TargetFunction;
-		Stack.StepCompiledIn<UStrProperty>(&TargetFunction);
+		Stack.StepCompiledIn<UBoolProperty>(&Emit.bPinned);
+		Stack.StepCompiledIn<UStrProperty>(&Emit.TargetDomain);
+		Stack.StepCompiledIn<UStrProperty>(&Emit.TargetFunction);
 
 		//Determine wildcard property
 		Stack.Step(Stack.Object, NULL);
 		UProperty* ParameterProp = Cast<UProperty>(Stack.MostRecentProperty);
 		void* PropPtr = Stack.MostRecentPropertyAddress;
-		
-		if (ParameterProp->IsA<UStructProperty>())
-		{
-			UStructProperty* StructProperty = ExactCast<UStructProperty>(ParameterProp);
-			P_FINISH;
-			P_NATIVE_BEGIN;
-			HandleEmit(TargetFunction, StructProperty->Struct, PropPtr, TargetDomain);
-			P_NATIVE_END;
-			return;
-		}
-		else if (ParameterProp->IsA<UStrProperty>())
-		{
-			UStrProperty* StrProperty = Cast<UStrProperty>(ParameterProp);
-			FString Data = StrProperty->GetPropertyValue(PropPtr);
-			P_FINISH;
-			P_NATIVE_BEGIN;
-			HandleEmit(TargetFunction, Data, TargetDomain);
-			P_NATIVE_END;
-			return;
-		}
-		else if (ParameterProp->IsA<UNumericProperty>())
-		{
-			UNumericProperty* NumericProperty = Cast<UNumericProperty>(ParameterProp);
-			if (NumericProperty->IsFloatingPoint())
-			{
-				double Data = NumericProperty->GetFloatingPointPropertyValue(PropPtr);
-				P_FINISH;
-				P_NATIVE_BEGIN;
-				HandleEmit(TargetFunction, Data, TargetDomain);
-				P_NATIVE_END;
-				return;
-			}
-			else
-			{
-				int64 Data = NumericProperty->GetSignedIntPropertyValue(PropPtr);
-				P_FINISH;
-				P_NATIVE_BEGIN;
-				HandleEmit(TargetFunction, Data, TargetDomain);
-				P_NATIVE_END;
-				return;
-			}
-		}
-		else if (ParameterProp->IsA<UBoolProperty>())
-		{
-			UBoolProperty* BoolProperty = Cast<UBoolProperty>(ParameterProp);
-			bool Data = BoolProperty->GetPropertyValue(PropPtr);
-			P_FINISH;
-			P_NATIVE_BEGIN;
-			HandleEmit(TargetFunction, Data, TargetDomain);
-			P_NATIVE_END;
-			return;
-		}
-		else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("GESEmitEvent Parameter type unsupported, event not emitted."));
-			P_FINISH;
-		}
+
+		Emit.Property = ParameterProp;
+		Emit.PropertyPtr = PropPtr;
+
+		P_FINISH;
+		P_NATIVE_BEGIN;
+		HandleEmit(Emit);
+		P_NATIVE_END;
 	}
 
 
 private:
-
-	//overloaded emits
-	static void HandleEmit(const FString& TargetFunction, UStruct* DataStruct, void* DataStructPtr, const FString& TargetDomain);
-	static void HandleEmit(const FString& TargetFunction, const FString& Data, const FString& TargetDomain);
-	static void HandleEmit(const FString& TargetFunction, double Data, const FString& TargetDomain);
-	static void HandleEmit(const FString& TargetFunction, int64 Data, const FString& TargetDomain);
-	static void HandleEmit(const FString& TargetFunction, bool Data, const FString& TargetDomain);
+	static void HandleEmit(const FGESEmitData& EmitData);
 	//todo add support for array type props
-
-
 };

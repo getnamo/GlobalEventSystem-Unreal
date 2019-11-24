@@ -12,17 +12,30 @@ TSharedPtr<FGESHandler> FGESHandler::DefaultHandler()
 	return FGESHandler::PrivateDefaultHandler;
 }
 
-void FGESHandler::CreateEvent(const FString& TargetDomain, const FString& TargetFunction)
+void FGESHandler::CreateEvent(const FString& TargetDomain, const FString& TargetFunction, bool bPinned /*=false*/)
 {
 	FGESEvent CreatedFunction;
 	CreatedFunction.TargetDomain = TargetDomain;
 	CreatedFunction.TargetFunction = TargetFunction;
+	CreatedFunction.bPinned = bPinned;
 	FunctionMap.Add(Key(TargetDomain, TargetFunction), CreatedFunction);
 }
 
 void FGESHandler::DeleteEvent(const FString& TargetDomain, const FString& TargetFunction)
 {
 	FunctionMap.Remove(Key(TargetDomain, TargetFunction));
+}
+
+void FGESHandler::UnpinEvent(const FString& TargetDomain, const FString& TargetFunction)
+{
+	FString KeyString = Key(TargetDomain, TargetFunction);
+	if (FunctionMap.Contains(KeyString))
+	{
+		FGESEvent& Event = FunctionMap[KeyString];
+		Event.bPinned = false;
+		Event.PinnedData.Property->RemoveFromRoot();
+		//Event.PinnedData.PropertyData.Empty();
+	}
 }
 
 void FGESHandler::AddListener(const FString& TargetDomain, const FString& TargetFunction, const FGESEventListener& Listener)
@@ -34,7 +47,24 @@ void FGESHandler::AddListener(const FString& TargetDomain, const FString& Target
 	}
 	if (Listener.IsValidListener())
 	{
-		FunctionMap[KeyString].Listeners.Add(Listener);
+		FGESEvent& Event = FunctionMap[KeyString];
+		Event.Listeners.Add(Listener);
+
+		//if it's pinned re-emit it immediately to this listener
+		if (Event.bPinned) 
+		{
+			FGESEmitData EmitData;
+			
+			EmitData.TargetDomain = TargetDomain;
+			EmitData.TargetFunction = TargetFunction;
+
+			EmitData.Property = Event.PinnedData.Property;
+			EmitData.PropertyPtr = Event.PinnedData.PropertyPtr;
+			EmitData.bPinned = Event.bPinned;
+			EmitData.SpecificTarget = (FGESEventListener*)&Listener;	//this immediate call should only be calling our listener
+			
+			EmitEvent(EmitData);
+		}
 	}
 	else
 	{
@@ -60,20 +90,34 @@ void FGESHandler::RemoveListener(const FString& TargetDomain, const FString& Tar
 	FunctionMap[KeyString].Listeners.Remove(Listener);
 }
 
-void FGESHandler::ForEachListener(const FString& TargetDomain, const FString& TargetFunction, TFunction<void(const FGESEventListener&)> Callback)
+void FGESHandler::EmitToListenersWithData(const FGESEmitData& EmitData, TFunction<void(const FGESEventListener&)> DataFillCallback)
 {
-	FString KeyString = Key(TargetDomain, TargetFunction);
-	FGESEvent& Event = FunctionMap[KeyString];
-
-	for (FGESEventListener& Listener : Event.Listeners)
+	FString KeyString = Key(EmitData.TargetDomain, EmitData.TargetFunction);
+	if (!FunctionMap.Contains(KeyString))
 	{
+		CreateEvent(EmitData.TargetDomain, EmitData.TargetFunction, false);
+	}
+	FGESEvent& Event = FunctionMap[KeyString];
+	if (!Event.bPinned && EmitData.bPinned)
+	{
+		Event.bPinned = EmitData.bPinned;
+		Event.PinnedData.Property = EmitData.Property;
+		Event.PinnedData.PropertyPtr = EmitData.PropertyPtr;
+		Event.PinnedData.CopyPropertyToPinnedBuffer();
+	}
+
+	//only emit to this target
+	if (EmitData.SpecificTarget)
+	{
+		FGESEventListener Listener = *EmitData.SpecificTarget;
+
 		//Check validity of receiver and function and call the function
 		if (Listener.Receiver->IsValidLowLevel())
 		{
 			UFunction* BPFunction = Listener.Receiver->FindFunction(FName(*Listener.FunctionName));
 			if (BPFunction != nullptr)
 			{
-				Callback(Listener);
+				DataFillCallback(Listener);
 			}
 			else
 			{
@@ -82,9 +126,37 @@ void FGESHandler::ForEachListener(const FString& TargetDomain, const FString& Ta
 		}
 		else
 		{
+			//stale listener, remove it
 			RemovalArray.Add(&Listener);
 		}
 	}
+	//emit to all targets
+	else
+	{
+		for (FGESEventListener& Listener : Event.Listeners)
+		{
+			//Check validity of receiver and function and call the function
+			if (Listener.Receiver->IsValidLowLevel())
+			{
+				UFunction* BPFunction = Listener.Receiver->FindFunction(FName(*Listener.FunctionName));
+				if (BPFunction != nullptr)
+				{
+					DataFillCallback(Listener);
+				}
+				else
+				{
+					UE_LOG(LogTemp, Warning, TEXT("FGESHandler::EmitEvent: Function not found '%s'"), *Listener.FunctionName);
+				}
+			}
+			else
+			{
+				//stale listener, remove it
+				RemovalArray.Add(&Listener);
+			}
+		}
+	}
+
+	//Go through stale listeners and remove them
 	if (RemovalArray.Num() > 0)
 	{
 		for (int i = 0; i < RemovalArray.Num(); i++)
@@ -97,45 +169,88 @@ void FGESHandler::ForEachListener(const FString& TargetDomain, const FString& Ta
 	}
 }
 
-void FGESHandler::EmitEvent(const FString& TargetDomain, const FString& TargetFunction, UStruct* Struct, void* StructPtr)
+void FGESHandler::EmitEvent(const FGESEmitData& EmitData, UStruct* Struct, void* StructPtr)
 {
-	ForEachListener(TargetDomain, TargetFunction, [Struct, StructPtr](const FGESEventListener& Listener)
+	EmitToListenersWithData(EmitData, [Struct, StructPtr](const FGESEventListener& Listener)
 	{
 		Listener.Receiver->ProcessEvent(Listener.Function, StructPtr);
 	});
 }
 
-void FGESHandler::EmitEvent(const FString& TargetDomain, const FString& TargetFunction, const FString& ParamData)
+void FGESHandler::EmitEvent(const FGESEmitData& EmitData, const FString& ParamData)
 {
 	FString MutableParamString = ParamData;
-	ForEachListener(TargetDomain, TargetFunction, [&MutableParamString](const FGESEventListener& Listener)
+	EmitToListenersWithData(EmitData, [&MutableParamString](const FGESEventListener& Listener)
 	{
 		Listener.Receiver->ProcessEvent(Listener.Function, &MutableParamString);
 	});
 }
 
-void FGESHandler::EmitEvent(const FString& TargetDomain, const FString& TargetFunction, float ParamData)
+void FGESHandler::EmitEvent(const FGESEmitData& EmitData, float ParamData)
 {
-	ForEachListener(TargetDomain, TargetFunction, [&ParamData](const FGESEventListener& Listener)
+	EmitToListenersWithData(EmitData, [&ParamData](const FGESEventListener& Listener)
 	{
 		Listener.Receiver->ProcessEvent(Listener.Function, &ParamData);
 	});
 }
 
-void FGESHandler::EmitEvent(const FString& TargetDomain, const FString& TargetFunction, int32 ParamData)
+void FGESHandler::EmitEvent(const FGESEmitData& EmitData, int32 ParamData)
 {
-	ForEachListener(TargetDomain, TargetFunction, [&ParamData](const FGESEventListener& Listener)
+	EmitToListenersWithData(EmitData, [&ParamData](const FGESEventListener& Listener)
 	{
 		Listener.Receiver->ProcessEvent(Listener.Function, &ParamData);
 	});
 }
 
-void FGESHandler::EmitEvent(const FString& TargetDomain, const FString& TargetFunction, bool ParamData)
+void FGESHandler::EmitEvent(const FGESEmitData& EmitData, bool ParamData)
 {
-	ForEachListener(TargetDomain, TargetFunction, [&ParamData](const FGESEventListener& Listener)
+	EmitToListenersWithData(EmitData, [&ParamData](const FGESEventListener& Listener)
 	{
 		Listener.Receiver->ProcessEvent(Listener.Function, &ParamData);
 	});
+}
+
+void FGESHandler::EmitEvent(const FGESEmitData& EmitData)
+{
+	UProperty* ParameterProp = EmitData.Property;
+	void* PropPtr = EmitData.PropertyPtr;
+
+	if (ParameterProp->IsA<UStructProperty>())
+	{
+		UStructProperty* StructProperty = ExactCast<UStructProperty>(ParameterProp);
+		EmitEvent(EmitData, StructProperty->Struct, PropPtr);
+		return;
+	}
+	else if (ParameterProp->IsA<UStrProperty>())
+	{
+		UStrProperty* StrProperty = Cast<UStrProperty>(ParameterProp);
+		FString Data = StrProperty->GetPropertyValue(PropPtr);
+		EmitEvent(EmitData, Data);
+		return;
+	}
+	else if (ParameterProp->IsA<UNumericProperty>())
+	{
+		UNumericProperty* NumericProperty = Cast<UNumericProperty>(ParameterProp);
+		if (NumericProperty->IsFloatingPoint())
+		{
+			double Data = NumericProperty->GetFloatingPointPropertyValue(PropPtr);
+			EmitEvent(EmitData, (float)Data);
+			return;
+		}
+		else
+		{
+			int64 Data = NumericProperty->GetSignedIntPropertyValue(PropPtr);
+			EmitEvent(EmitData, (int32)Data);
+			return;
+		}
+	}
+	else if (ParameterProp->IsA<UBoolProperty>())
+	{
+		UBoolProperty* BoolProperty = Cast<UBoolProperty>(ParameterProp);
+		bool Data = BoolProperty->GetPropertyValue(PropPtr);
+		EmitEvent(EmitData, Data);
+		return;
+	}
 }
 
 FString FGESHandler::Key(const FString& TargetDomain, const FString& TargetFunction)
@@ -154,3 +269,13 @@ FGESHandler::~FGESHandler()
 	FunctionMap.Empty();
 }
 
+void FGESPinnedData::CopyPropertyToPinnedBuffer()
+{
+	//Copy this property data to temp
+	int32 Num = Property->GetSize();
+	PropertyData.SetNumUninitialized(Num);
+	FMemory::Memcpy(PropertyData.GetData(), PropertyPtr, Num);
+
+	//reset pointer to new copy
+	PropertyPtr = PropertyData.GetData();
+}

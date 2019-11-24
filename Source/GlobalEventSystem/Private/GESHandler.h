@@ -1,6 +1,6 @@
 #pragma once
-#include "CoreMinimal.h"
 #include "UObject/Object.h"
+#include "UObject/UnrealType.h"
 
 struct FGESEventListener
 {
@@ -28,16 +28,49 @@ struct FGESEventListener
 	}
 };
 
+struct FGESPinnedData
+{
+	UProperty* Property;
+	void* PropertyPtr;
+	TArray<uint8> PropertyData;
+
+	void CopyPropertyToPinnedBuffer();
+};
+
 struct FGESEvent
 {
+	//If pinned an event will emit the moment you add a listener if it has been already fired once
+	bool bPinned;
+	FGESPinnedData PinnedData;
+
 	FString TargetDomain;
 	FString TargetFunction;
 	TArray<FGESEventListener> Listeners;
+
+	FGESEvent() { }
+
 	//todo: add restrictions e.g. must apply interface, 
 	//	should this be a callback to creator of function/domain?
 	//	for refined access?
+};
 
-	
+struct FGESEmitData
+{
+	bool bPinned;
+	FString TargetDomain;
+	FString TargetFunction;
+	UProperty* Property;
+	void* PropertyPtr;
+
+	//if we want a callback or pin emit
+	FGESEventListener* SpecificTarget;
+
+	FGESEmitData()
+	{
+		Property = nullptr;
+		PropertyPtr = nullptr;
+		SpecificTarget = nullptr;
+	}
 };
 
 class FGESHandler
@@ -50,7 +83,7 @@ public:
 	/**
 	*	Create an event in TargetDomain.TargetFunction. Does nothing if already existing
 	*/
-	void CreateEvent(const FString& TargetDomain, const FString& TargetFunction);
+	void CreateEvent(const FString& TargetDomain, const FString& TargetFunction, bool bPinned = false);
 	
 	/**
 	*	Delete an event in TargetDomain.TargetFunction. Does nothing if missing
@@ -58,9 +91,15 @@ public:
 	void DeleteEvent(const FString& TargetDomain, const FString& TargetFunction);
 
 	/** 
+	*	Removes the pinning of the event for future listeners.
+	*/
+	void UnpinEvent(const FString& TargetDomain, const FString& TargetFunction);
+
+	/** 
 	* Listen to an event in TargetDomain.TargetFunction
 	*/
 	void AddListener(const FString& TargetDomain, const FString& TargetFunction, const FGESEventListener& Listener);
+	
 	/**
 	* Stop listening to an event in TargetDomain.TargetFunction
 	*/
@@ -69,14 +108,15 @@ public:
 	/**
 	* Emit event in TargetDomain.TargetFunction with Struct type parameter data.
 	*/
-	void ForEachListener(const FString& TargetDomain, const FString& TargetFunction, TFunction<void(const FGESEventListener&)> Callback);
+	void EmitToListenersWithData(const FGESEmitData& EmitData, TFunction<void(const FGESEventListener&)> DataFillCallback);
 
 	//overloaded emits
-	void EmitEvent(const FString& TargetDomain, const FString& TargetFunction, UStruct* Struct, void* StructPtr);
-	void EmitEvent(const FString& TargetDomain, const FString& TargetFunction, const FString& ParamData);
-	void EmitEvent(const FString& TargetDomain, const FString& TargetFunction, float ParamData);
-	void EmitEvent(const FString& TargetDomain, const FString& TargetFunction, int32 ParamData);
-	void EmitEvent(const FString& TargetDomain, const FString& TargetFunction, bool ParamData);
+	void EmitEvent(const FGESEmitData& EmitData, UStruct* Struct, void* StructPtr);
+	void EmitEvent(const FGESEmitData& EmitData, const FString& ParamData);
+	void EmitEvent(const FGESEmitData& EmitData, float ParamData);
+	void EmitEvent(const FGESEmitData& EmitData, int32 ParamData);
+	void EmitEvent(const FGESEmitData& EmitData, bool ParamData);
+	void EmitEvent(const FGESEmitData& EmitData);
 
 
 	static FString Key(const FString& TargetDomain, const FString& TargetFunction);

@@ -27,32 +27,12 @@ void UGlobalEventSystemBPLibrary::GESBindEvent(UObject* WorldContextObject, cons
 	FGESHandler::DefaultHandler()->AddListener(TargetDomain, TargetFunction, Listener);
 }
 
-void UGlobalEventSystemBPLibrary::HandleEmit(const FString& TargetFunction, UStruct* DataStruct, void* DataStructPtr, const FString& TargetDomain)
+void UGlobalEventSystemBPLibrary::HandleEmit(const FGESEmitData& EmitData)
 {
-	FGESHandler::DefaultHandler()->EmitEvent(TargetDomain, TargetFunction, DataStruct, DataStructPtr);
+	FGESHandler::DefaultHandler()->EmitEvent(EmitData);
 }
 
-void UGlobalEventSystemBPLibrary::HandleEmit(const FString& TargetFunction, const FString& Data, const FString& TargetDomain)
-{
-	FGESHandler::DefaultHandler()->EmitEvent(TargetDomain, TargetFunction, Data);
-}
-
-void UGlobalEventSystemBPLibrary::HandleEmit(const FString& TargetFunction, double Data, const FString& TargetDomain)
-{
-	FGESHandler::DefaultHandler()->EmitEvent(TargetDomain, TargetFunction, (float)Data);
-}
-
-void UGlobalEventSystemBPLibrary::HandleEmit(const FString& TargetFunction, int64 Data, const FString& TargetDomain)
-{
-	FGESHandler::DefaultHandler()->EmitEvent(TargetDomain, TargetFunction, (int32)Data);
-}
-
-void UGlobalEventSystemBPLibrary::HandleEmit(const FString& TargetFunction, bool Data, const FString& TargetDomain)
-{
-	FGESHandler::DefaultHandler()->EmitEvent(TargetDomain, TargetFunction, Data);
-}
-
-void UGlobalEventSystemBPLibrary::GESEmitEvent(const FString& TargetDomain /*= TEXT("global.default")*/, const FString& TargetFunction /*= TEXT("")*/, UProperty* ParameterData /*= nullptr*/)
+void UGlobalEventSystemBPLibrary::GESEmitEvent(bool bPinned /*= false*/, const FString& TargetDomain /*= TEXT("global.default")*/, const FString& TargetFunction /*= TEXT("")*/, UProperty* ParameterData /*= nullptr*/)
 {
 	//this never gets called due to custom thunk
 }
