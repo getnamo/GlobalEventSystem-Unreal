@@ -1,4 +1,5 @@
 #include "GESHandler.h"
+#include "Engine/World.h"
 
 TSharedPtr<FGESHandler> FGESHandler::PrivateDefaultHandler = MakeShareable(new FGESHandler());
 
@@ -93,6 +94,11 @@ void FGESHandler::DeleteEvent(const FString& Domain, const FString& Event)
 	FunctionMap.Remove(Key(Domain, Event));
 }
 
+bool FGESHandler::HasEvent(const FString& Domain, const FString& Event)
+{
+	return FunctionMap.Contains(Key(Domain, Event));
+}
+
 void FGESHandler::UnpinEvent(const FString& Domain, const FString& EventName)
 {
 	FString KeyString = Key(Domain, EventName);
@@ -130,7 +136,15 @@ void FGESHandler::AddListener(const FString& Domain, const FString& EventName, c
 			EmitData.bPinned = Event.bPinned;
 			EmitData.SpecificTarget = (FGESEventListener*)&Listener;	//this immediate call should only be calling our listener
 			
-			EmitEvent(EmitData);
+			//did we fail to emit?
+			if (!EmitEvent(EmitData))
+			{
+				//did the event get removed due to being stale? The listener may still be valid so re-run the listener loop
+				if (!HasEvent(Domain, EventName))
+				{
+					AddListener(Domain, EventName, Listener);
+				}
+			}
 		}
 	}
 	else
@@ -252,7 +266,7 @@ void FGESHandler::EmitToListenersWithData(const FGESEmitData& EmitData, TFunctio
 			FGESEventListener Listener = *RemovalArray[i];
 			Event.Listeners.Remove(Listener);
 		}
-		if (bLogStaleListenerRemovals)
+		if (bLogStaleRemovals)
 		{
 			UE_LOG(LogTemp, Log, TEXT("FGESHandler::EmitEvent: auto-removed %d stale listeners."), RemovalArray.Num());
 		}
@@ -365,8 +379,18 @@ void FGESHandler::EmitEvent(const FGESEmitData& EmitData, const FName& ParamData
 	});
 }
 
-void FGESHandler::EmitEvent(const FGESEmitData& EmitData)
+bool FGESHandler::EmitEvent(const FGESEmitData& EmitData)
 {
+	if (!EmitData.WorldContext->IsValidLowLevel() || !EmitData.WorldContext->GetWorld()->IsValidLowLevel())
+	{
+		//Remove this event, it's emit context is invalid
+		DeleteEvent(EmitData.Domain, EmitData.Event);
+		if (bLogStaleRemovals)
+		{
+			UE_LOG(LogTemp, Log, TEXT("FGESHandler::EmitEvent stale event removed due to invalid world context. (Usually due to pinned events that haven't been unpinned."));
+		}
+		return false;
+	}
 	UProperty* ParameterProp = EmitData.Property;
 	void* PropPtr = EmitData.PropertyPtr;
 
@@ -400,21 +424,21 @@ void FGESHandler::EmitEvent(const FGESEmitData& EmitData)
 	{
 		UStructProperty* StructProperty = ExactCast<UStructProperty>(ParameterProp);
 		EmitEvent(EmitData, StructProperty->Struct, PropPtr);
-		return;
+		return true;
 	}
 	else if (ParameterProp->IsA<UStrProperty>())
 	{
 		UStrProperty* StrProperty = Cast<UStrProperty>(ParameterProp);
 		FString Data = StrProperty->GetPropertyValue(PropPtr);
 		EmitEvent(EmitData, Data);
-		return;
+		return true;
 	}
 	else if (ParameterProp->IsA<UObjectProperty>())
 	{
 		UObjectProperty* ObjectProperty = Cast<UObjectProperty>(ParameterProp);
 		UObject* Data = ObjectProperty->GetPropertyValue(PropPtr);
 		EmitEvent(EmitData, Data);
-		return;
+		return true;
 	}
 	else if (ParameterProp->IsA<UNumericProperty>())
 	{
@@ -423,13 +447,13 @@ void FGESHandler::EmitEvent(const FGESEmitData& EmitData)
 		{
 			double Data = NumericProperty->GetFloatingPointPropertyValue(PropPtr);
 			EmitEvent(EmitData, (float)Data);
-			return;
+			return true;
 		}
 		else
 		{
 			int64 Data = NumericProperty->GetSignedIntPropertyValue(PropPtr);
 			EmitEvent(EmitData, (int32)Data);
-			return;
+			return true;
 		}
 	}
 	else if (ParameterProp->IsA<UBoolProperty>())
@@ -437,19 +461,21 @@ void FGESHandler::EmitEvent(const FGESEmitData& EmitData)
 		UBoolProperty* BoolProperty = Cast<UBoolProperty>(ParameterProp);
 		bool Data = BoolProperty->GetPropertyValue(PropPtr);
 		EmitEvent(EmitData, Data);
-		return;
+		return true;
 	}
 	else if (ParameterProp->IsA<UNameProperty>())
 	{
 		UNameProperty* NameProperty = Cast<UNameProperty>(ParameterProp);
 		FName Data = NameProperty->GetPropertyValue(PropPtr);
 		EmitEvent(EmitData, Data);
-		return;
+		return true;
 	}
 	else
 	{
 		UE_LOG(LogTemp, Warning, TEXT("FGESHandler::EmitEvent Unsupported parameter"));
+		return false;
 	}
+	return false;
 }
 
 FString FGESHandler::Key(const FString& Domain, const FString& Event)
@@ -463,7 +489,7 @@ FGESHandler::FGESHandler()
 	bValidateStructTypes = true;
 
 	//Generally logs when you re-launch a map or delete receiving actors without unbinding
-	bLogStaleListenerRemovals = true;
+	bLogStaleRemovals = true;
 }
 
 FGESHandler::~FGESHandler()

@@ -33,14 +33,14 @@ class UGlobalEventSystemBPLibrary : public UBlueprintFunctionLibrary
 	* Pinning an event means it will emit to future listeners even if the event has already been
 	* emitted.
 	*/
-	UFUNCTION(BlueprintCallable, CustomThunk, Category = "GlobalEventSystem", meta = (CustomStructureParam = "ParameterData"))
-	static void GESEmitEventOneParam(bool bPinned = false, const FString& Domain = TEXT("global.default"), const FString& Event = TEXT(""), UProperty* ParameterData = nullptr);
+	UFUNCTION(BlueprintCallable, CustomThunk, Category = "GlobalEventSystem", meta = (CustomStructureParam = "ParameterData", WorldContext = "WorldContextObject"))
+	static void GESEmitEventOneParam(UObject* WorldContextObject, bool bPinned = false, const FString& Domain = TEXT("global.default"), const FString& Event = TEXT(""), UProperty* ParameterData = nullptr);
 
 	/** 
 	* Just emits the event with no additional data
 	*/
-	UFUNCTION(BlueprintCallable, Category = "GlobalEventSystem")
-	static void GESEmitEvent(bool bPinned = false, const FString& Domain = TEXT("global.default"), const FString& Event = TEXT(""));
+	UFUNCTION(BlueprintCallable, meta=(WorldContext = "WorldContextObject"), Category = "GlobalEventSystem")
+	static void GESEmitEvent(UObject* WorldContextObject, bool bPinned = false, const FString& Domain = TEXT("global.default"), const FString& Event = TEXT(""));
 
 	/** 
 	* If an event was pinned, this will unpin it. If you wish to re-pin a different event you need to unpin the old event first.
@@ -54,6 +54,7 @@ class UGlobalEventSystemBPLibrary : public UBlueprintFunctionLibrary
 		Stack.MostRecentProperty = nullptr;
 		FGESEmitData EmitData;
 
+		Stack.StepCompiledIn<UObjectProperty>(&EmitData.WorldContext);
 		Stack.StepCompiledIn<UBoolProperty>(&EmitData.bPinned);
 		Stack.StepCompiledIn<UStrProperty>(&EmitData.Domain);
 		Stack.StepCompiledIn<UStrProperty>(&EmitData.Event);

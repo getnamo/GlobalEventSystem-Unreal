@@ -70,6 +70,7 @@ struct FGESEmitData
 	FString Event;
 	UProperty* Property;
 	void* PropertyPtr;
+	UObject* WorldContext;
 
 	//if we want a callback or pin emit
 	FGESEventListener* SpecificTarget;
@@ -105,6 +106,11 @@ public:
 	void DeleteEvent(const FString& Domain, const FString& Event);
 
 	/** 
+	*	Check if event exists
+	*/
+	bool HasEvent(const FString& Domain, const FString& Event);
+
+	/** 
 	*	Removes the pinning of the event for future listeners.
 	*/
 	void UnpinEvent(const FString& Domain, const FString& Event);
@@ -132,7 +138,7 @@ public:
 	void EmitEvent(const FGESEmitData& EmitData, int32 ParamData);
 	void EmitEvent(const FGESEmitData& EmitData, bool ParamData);
 	void EmitEvent(const FGESEmitData& EmitData, const FName& ParamData);
-	void EmitEvent(const FGESEmitData& EmitData);
+	bool EmitEvent(const FGESEmitData& EmitData);
 	
 
 
@@ -161,5 +167,5 @@ private:
 
 	//Toggles
 	bool bValidateStructTypes;
-	bool bLogStaleListenerRemovals;
+	bool bLogStaleRemovals;
 };
