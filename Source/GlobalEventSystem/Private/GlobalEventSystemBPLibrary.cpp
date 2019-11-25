@@ -52,3 +52,11 @@ void UGlobalEventSystemBPLibrary::GESUnpinEvent(UObject* WorldContextObject, con
 	FGESHandler::DefaultHandler()->UnpinEvent(Domain, Event);
 }
 
+void UGlobalEventSystemBPLibrary::SetGESOptions(const FGESGlobalOptions& InOptions)
+{
+	FGESHandlerOptions HandlerOptions;
+	HandlerOptions.bLogStaleRemovals = InOptions.bLogStaleRemovals;
+	HandlerOptions.bValidateStructTypes = InOptions.bValidateStructTypes;
+	FGESHandler::DefaultHandler()->SetOptions(HandlerOptions);
+}
+

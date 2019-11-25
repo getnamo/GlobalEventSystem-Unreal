@@ -7,6 +7,25 @@
 #include "GlobalEventSystemBPLibrary.generated.h"
 
 
+USTRUCT(BlueprintType)
+struct FGESGlobalOptions
+{
+	GENERATED_USTRUCT_BODY()
+
+	/** Whether to ensure structs are exactly the same. Turn off for small performance boost. Default true.*/
+	UPROPERTY(BlueprintReadWrite, Category = "GES Global Options")
+	bool bValidateStructTypes;
+
+	/** Will output logs for stale events and listeners that get removed. . Default true.*/
+	UPROPERTY(BlueprintReadWrite, Category = "GES Global Options")
+	bool bLogStaleRemovals;
+
+	FGESGlobalOptions()
+	{
+		bValidateStructTypes = true;
+		bLogStaleRemovals = true;
+	}
+};
 
 /* 
 * Core Global Event System functions. Call anywhere.
@@ -47,6 +66,12 @@ class UGlobalEventSystemBPLibrary : public UBlueprintFunctionLibrary
 	*/
 	UFUNCTION(BlueprintCallable, meta = (WorldContext = "WorldContextObject"), Category = "GlobalEventSystem")
 	static void GESUnpinEvent(UObject* WorldContextObject, const FString& Domain = TEXT("global.default"), const FString& Event = TEXT(""));
+
+	/**
+	* GES Options are global and affect things like logging and param verification (performance options)
+	*/
+	UFUNCTION(BlueprintCallable, Category = "GlobalEventSystemOptions")
+	static void SetGESOptions(const FGESGlobalOptions& InOptions);
 
 	//Convert property into c++ accessible form
 	DECLARE_FUNCTION(execGESEmitEventOneParam)

@@ -266,7 +266,7 @@ void FGESHandler::EmitToListenersWithData(const FGESEmitData& EmitData, TFunctio
 			FGESEventListener Listener = *RemovalArray[i];
 			Event.Listeners.Remove(Listener);
 		}
-		if (bLogStaleRemovals)
+		if (Options.bLogStaleRemovals)
 		{
 			UE_LOG(LogTemp, Log, TEXT("FGESHandler::EmitEvent: auto-removed %d stale listeners."), RemovalArray.Num());
 		}
@@ -276,7 +276,7 @@ void FGESHandler::EmitToListenersWithData(const FGESEmitData& EmitData, TFunctio
 
 void FGESHandler::EmitEvent(const FGESEmitData& EmitData, UStruct* Struct, void* StructPtr)
 {
-	bool bValidateStructs = bValidateStructTypes;
+	bool bValidateStructs = Options.bValidateStructTypes;
 	EmitToListenersWithData(EmitData, [&EmitData, Struct, StructPtr, bValidateStructs](const FGESEventListener& Listener)
 	{
 		if (FunctionHasValidParams(Listener.Function, UStructProperty::StaticClass(), EmitData, Listener))
@@ -385,7 +385,7 @@ bool FGESHandler::EmitEvent(const FGESEmitData& EmitData)
 	{
 		//Remove this event, it's emit context is invalid
 		DeleteEvent(EmitData.Domain, EmitData.Event);
-		if (bLogStaleRemovals)
+		if (Options.bLogStaleRemovals)
 		{
 			UE_LOG(LogTemp, Log, TEXT("FGESHandler::EmitEvent stale event removed due to invalid world context. (Usually due to pinned events that haven't been unpinned."));
 		}
@@ -478,6 +478,11 @@ bool FGESHandler::EmitEvent(const FGESEmitData& EmitData)
 	return false;
 }
 
+void FGESHandler::SetOptions(const FGESHandlerOptions& InOptions)
+{
+	Options = InOptions;
+}
+
 FString FGESHandler::Key(const FString& Domain, const FString& Event)
 {
 	return Domain + TEXT(".") + Event;
@@ -485,16 +490,12 @@ FString FGESHandler::Key(const FString& Domain, const FString& Event)
 
 FGESHandler::FGESHandler()
 {
-	//can have performance implications, but safer
-	bValidateStructTypes = true;
 
-	//Generally logs when you re-launch a map or delete receiving actors without unbinding
-	bLogStaleRemovals = true;
 }
 
 FGESHandler::~FGESHandler()
 {
-	//todo: maybe cleanup via emitting shutdown events?
+	//Practically not needed due to shutdown happening on program exit
 	/*for (TPair<FString, FGESEvent> Pair : FunctionMap)
 	{
 		if (Pair.Value.bPinned)

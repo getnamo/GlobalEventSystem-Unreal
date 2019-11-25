@@ -88,6 +88,21 @@ struct FGESDynamicArg
 	void* Arg01;
 };
 
+struct FGESHandlerOptions
+{
+	//can have performance implications, but safer
+	bool bValidateStructTypes;
+
+	//Generally logs when you re-launch a map or delete receiving actors without unbinding
+	bool bLogStaleRemovals;
+
+	FGESHandlerOptions()
+	{
+		bValidateStructTypes = true;
+		bLogStaleRemovals = true;
+	}
+};
+
 class FGESHandler
 {
 public:
@@ -139,9 +154,15 @@ public:
 	void EmitEvent(const FGESEmitData& EmitData, bool ParamData);
 	void EmitEvent(const FGESEmitData& EmitData, const FName& ParamData);
 	bool EmitEvent(const FGESEmitData& EmitData);
+
+	/**
+	* Update global options
+	*/
+	void SetOptions(const FGESHandlerOptions& InOptions);
 	
-
-
+	/** 
+	* Convenience internal Key for domain and event string
+	*/
 	static FString Key(const FString& Domain, const FString& Event);
 
 	FGESHandler();
@@ -166,6 +187,5 @@ private:
 	TArray<FGESEventListener*> RemovalArray;
 
 	//Toggles
-	bool bValidateStructTypes;
-	bool bLogStaleRemovals;
+	FGESHandlerOptions Options;
 };
