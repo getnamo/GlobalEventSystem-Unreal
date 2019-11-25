@@ -88,3 +88,11 @@ Blueprints which would listen to the SAReady event, don't even have to care wher
 - If your objects have a tight coupling or it's easily accesible in a tree hierarchy pattern I would use standard methods instead of GES.
 
 - Background threads. Current version is not thread safe.
+
+## Possible Improvements
+See https://github.com/getnamo/global-event-system-ue4/issues for latest.
+General enhancements:
+- Add receiver limits, e.g. must have this interface
+- Event with callback (get information from a listener)
+- Add optional logging utility to record event flow with possibly replay
+- Trigger limits, e.g. can only trigger once
