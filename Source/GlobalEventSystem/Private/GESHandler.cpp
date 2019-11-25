@@ -5,30 +5,24 @@ TSharedPtr<FGESHandler> FGESHandler::PrivateDefaultHandler = MakeShareable(new F
 
 bool FGESHandler::FirstParamIsCppType(UFunction* Function, const FString& TypeString)
 {
-	//Check function signature
-	TFieldIterator<UProperty> Iterator(Function);
-
 	TArray<UProperty*> Properties;
-	while (Iterator && (Iterator->PropertyFlags & CPF_Parm))
+	FunctionParameters(Function, Properties);
+	if (Properties.Num() == 0)
 	{
-		UProperty* Prop = *Iterator;
-		Properties.Add(Prop);
-		++Iterator;
+		return false;
 	}
+
 	const FString& FirstParam = Properties[0]->GetCPPType();
 	return (FirstParam == TypeString);
 }
 
 bool FGESHandler::FirstParamIsSubclassOf(UFunction* Function, UClass* ClassType)
 {
-	TFieldIterator<UProperty> Iterator(Function);
-
 	TArray<UProperty*> Properties;
-	while (Iterator && (Iterator->PropertyFlags & CPF_Parm))
+	FunctionParameters(Function, Properties);
+	if (Properties.Num() == 0)
 	{
-		UProperty* Prop = *Iterator;
-		Properties.Add(Prop);
-		++Iterator;
+		return false;
 	}
 	return Properties[0]->GetClass()->IsChildOf(ClassType);
 }
@@ -46,6 +40,18 @@ FString FGESHandler::EventLogString(const FGESEvent& Event)
 FString FGESHandler::EmitEventLogString(const FGESEmitData& EmitData)
 {
 	return EmitData.Domain + TEXT(".") + EmitData.Event;
+}
+
+void FGESHandler::FunctionParameters(UFunction* Function, TArray<UProperty*>& OutParamProperties)
+{
+	TFieldIterator<UProperty> Iterator(Function);
+
+	while (Iterator && (Iterator->PropertyFlags & CPF_Parm))
+	{
+		UProperty* Prop = *Iterator;
+		OutParamProperties.Add(Prop);
+		++Iterator;
+	}
 }
 
 bool FGESHandler::FunctionHasValidParams(UFunction* Function, UClass* ClassType, const FGESEmitData& EmitData, const FGESEventListener& Listener)
@@ -246,18 +252,45 @@ void FGESHandler::EmitToListenersWithData(const FGESEmitData& EmitData, TFunctio
 			FGESEventListener Listener = *RemovalArray[i];
 			Event.Listeners.Remove(Listener);
 		}
-		UE_LOG(LogTemp, Log, TEXT("FGESHandler::EmitEvent: auto-removed %d stale listeners."), RemovalArray.Num());
+		if (bLogStaleListenerRemovals)
+		{
+			UE_LOG(LogTemp, Log, TEXT("FGESHandler::EmitEvent: auto-removed %d stale listeners."), RemovalArray.Num());
+		}
 		RemovalArray.Empty();
 	}
 }
 
 void FGESHandler::EmitEvent(const FGESEmitData& EmitData, UStruct* Struct, void* StructPtr)
 {
-	EmitToListenersWithData(EmitData, [&EmitData, Struct, StructPtr](const FGESEventListener& Listener)
+	bool bValidateStructs = bValidateStructTypes;
+	EmitToListenersWithData(EmitData, [&EmitData, Struct, StructPtr, bValidateStructs](const FGESEventListener& Listener)
 	{
 		if (FunctionHasValidParams(Listener.Function, UStructProperty::StaticClass(), EmitData, Listener))
 		{
-			Listener.Receiver->ProcessEvent(Listener.Function, StructPtr);
+			if (bValidateStructs)
+			{
+				//For structs we can have different mismatching structs at this point check class types
+				//optimization note: unroll the above function for structs to avoid double param lookup
+				TArray<UProperty*> Properties;
+				FunctionParameters(Listener.Function, Properties);
+				UStructProperty* StructProperty = Cast<UStructProperty>(Properties[0]);
+				if (StructProperty->Struct == Struct)
+				{
+					Listener.Receiver->ProcessEvent(Listener.Function, StructPtr);
+				}
+				else
+				{
+					UE_LOG(LogTemp, Warning, TEXT("FGESHandler::EmitEvent %s skipped listener %s due to function not having a matching Struct type %s signature."),
+						*EmitEventLogString(EmitData),
+						*ListenerLogString(Listener),
+						*Struct->GetName());
+				}
+			}
+			//No validation, e.g. vector-> rotator fill is accepted
+			else
+			{
+				Listener.Receiver->ProcessEvent(Listener.Function, StructPtr);
+			}
 		}
 	});
 }
@@ -409,7 +442,11 @@ FString FGESHandler::Key(const FString& Domain, const FString& Event)
 
 FGESHandler::FGESHandler()
 {
+	//can have performance implications, but safer
+	bValidateStructTypes = true;
 
+	//Generally logs when you re-launch a map or delete receiving actors without unbinding
+	bLogStaleListenerRemovals = true;
 }
 
 FGESHandler::~FGESHandler()

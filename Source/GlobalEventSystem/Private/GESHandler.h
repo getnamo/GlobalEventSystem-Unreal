@@ -149,6 +149,7 @@ private:
 	static FString ListenerLogString(const FGESEventListener& Listener);
 	static FString EventLogString(const FGESEvent& Event);
 	static FString EmitEventLogString(const FGESEmitData& EmitData);
+	static void FunctionParameters(UFunction* Function, TArray<UProperty*>& OutParamProperties);
 
 	//this function logs warnings otherwise
 	static bool FunctionHasValidParams(UFunction* Function, UClass* ClassType, const FGESEmitData& EmitData, const FGESEventListener& Listener);
@@ -156,4 +157,8 @@ private:
 	//Key == TargetDomain.TargetFunction
 	TMap<FString, FGESEvent> FunctionMap;
 	TArray<FGESEventListener*> RemovalArray;
+
+	//Toggles
+	bool bValidateStructTypes;
+	bool bLogStaleListenerRemovals;
 };
