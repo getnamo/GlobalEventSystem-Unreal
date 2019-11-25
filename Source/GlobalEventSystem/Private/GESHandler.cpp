@@ -353,6 +353,18 @@ void FGESHandler::EmitEvent(const FGESEmitData& EmitData, bool ParamData)
 	});
 }
 
+void FGESHandler::EmitEvent(const FGESEmitData& EmitData, const FName& ParamData)
+{
+	FName MutableName = ParamData;
+	EmitToListenersWithData(EmitData, [&EmitData, &ParamData, &MutableName](const FGESEventListener& Listener)
+	{
+		if (FunctionHasValidParams(Listener.Function, UNameProperty::StaticClass(), EmitData, Listener))
+		{
+			Listener.Receiver->ProcessEvent(Listener.Function, &MutableName);
+		}
+	});
+}
+
 void FGESHandler::EmitEvent(const FGESEmitData& EmitData)
 {
 	UProperty* ParameterProp = EmitData.Property;
@@ -427,13 +439,18 @@ void FGESHandler::EmitEvent(const FGESEmitData& EmitData)
 		EmitEvent(EmitData, Data);
 		return;
 	}
+	else if (ParameterProp->IsA<UNameProperty>())
+	{
+		UNameProperty* NameProperty = Cast<UNameProperty>(ParameterProp);
+		FName Data = NameProperty->GetPropertyValue(PropPtr);
+		EmitEvent(EmitData, Data);
+		return;
+	}
 	else
 	{
 		UE_LOG(LogTemp, Warning, TEXT("FGESHandler::EmitEvent Unsupported parameter"));
 	}
 }
-
-
 
 FString FGESHandler::Key(const FString& Domain, const FString& Event)
 {

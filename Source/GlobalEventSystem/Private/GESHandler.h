@@ -131,6 +131,7 @@ public:
 	void EmitEvent(const FGESEmitData& EmitData, float ParamData);
 	void EmitEvent(const FGESEmitData& EmitData, int32 ParamData);
 	void EmitEvent(const FGESEmitData& EmitData, bool ParamData);
+	void EmitEvent(const FGESEmitData& EmitData, const FName& ParamData);
 	void EmitEvent(const FGESEmitData& EmitData);
 	
 
