@@ -1,6 +1,8 @@
 # global-event-system-ue4
 A loosely coupled internal global event system (GES) plugin for the Unreal Engine. Aims to solve cross-map and cross-blueprint communication for reliable and inferable event flow.
 
+Because the events are emitted to a dynamic map of listeners you can loosely link parts of your project without needing to redo boilerplate when you change parts of the code, dynamically change environments, or load a different submap. Fire something away, and if something is interested in that information, they can do something with it; optional.
+
 Questions? See https://github.com/getnamo/global-event-system-ue4/issues
 
 ## Quick Install & Setup ##
@@ -12,7 +14,11 @@ Questions? See https://github.com/getnamo/global-event-system-ue4/issues
 
 ## How to use - Basics and API
 
-As the name implies, there are globally available functions that you can use to emit and bind events. At this time there are two variants for emitting (no parameters and one wildcard parameter) and one for binding events to your local functions. Each emit is a multi-cast to all valid bound receivers. If the parameters don't match you'll be warned in the log with fairly verbose messages while emitting to all other valid targets. Consider optionally attaching interfaces to your receivers to keep message types structured.
+There are globally available functions that you can use to emit and bind events. At this time there are two variants for emitting (no parameters and one wildcard parameter) and one for binding events to your local functions. 
+
+Each emit is a multi-cast to all valid bound receivers. If the parameters don't match you'll be warned in the log with fairly verbose messages while emitting to all other valid targets. 
+
+Consider optionally attaching interfaces to your receivers to keep message types structured.
 
 ### Emit Event
 
@@ -30,7 +36,11 @@ This is an abstract name and is considered unique for that domain. You'll need t
 #### ```GESEmitEventOneParam```
 
 ##### Additional Param: Parameter Data
-Wildcard Property, will accept any single property type e.g. *int, float, byte, string, name, bool, struct,* and *object*. Wrap arrays and maps in a custom struct to emit more complex data types. Break pin to set a new type of value. Keep in mind that the receiving listeners need to match the property type to receive the data.
+Wildcard Property, will accept any single property type e.g. *int, float, byte, string, name, bool, struct,* and *object*. Wrap arrays and maps in a custom struct to emit more complex data types. 
+
+Break pin to set a new type of value. 
+
+Keep in mind that the receiving listeners need to match the property type to receive the data.
 
 ![emit](https://i.imgur.com/8nXb5ya.png)
 
@@ -58,7 +68,7 @@ There are some simple options to toggle some log messages and detailed struct ty
 
 ## Examples
 
-Keep in mind that you can start using GES incrementally for specific tasks or parts of large projects instead of replacing tpo many parts at once. Below are some simple examples where GES could be useful.
+Keep in mind that you can start using GES incrementally for specific tasks or parts of large projects instead of replacing too many parts at once. Below are some simple examples where GES could be useful.
 
 ### Cross-map reference pinning
 Let's say you had two actors in two different sub-maps and you wanted one actor to know that it has spawned from e.g. some dynamic process.
@@ -68,11 +78,11 @@ In the spawned actor you could emit a reference to itself.
 
 ![listen actor](https://i.imgur.com/IP0XTtC.png)
 
-and in the other actor you could bind to that event to do something with that information. In this case the event would be received whether it was pinned or not because the receiver is assumed to be spawned in before the emitting actor. But what if you couldn't control the delay?
+and in the other actor you could bind to that event to do something with that information. Normally even without pinning this event should be received because you bind before you emit. But what if you couldn't control the delay?
 
 ![delayed bind](https://i.imgur.com/UfQYsJa.png)
 
-This is the case where pinning the event would help as now when the receiving actor binds to the event, it will auto-matically receive the last emit even though it was called after the event was emitted. From a developer perspective you can now just handle the receiving logic and not worry about whether you need to add delays or loop through all actors in the map. By using signaling from various sources with logic filtering you can ensure that the order of your events remains predictable, only start x when part y and z in the map have happened.
+This is the case where pinning the event would help as now when the receiving actor binds to the event, it will auto-matically receive the last emit even though it was called after the event was emitted. From a developer perspective you can now just handle the receiving logic and not worry about whether you need to add delays or loop through all actors in the map. By arranging your events to signal selectively states and muxing those states you can ensure that the order of your events remains predictable; only start x when part y and z in the map have happened.
 
 ### Flow muxing and Loose coupling
 
