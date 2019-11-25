@@ -71,6 +71,45 @@ bool FGESHandler::FunctionHasValidParams(UFunction* Function, UClass* ClassType,
 	}
 }
 
+//From IsValidLowLevelFast, but without logs
+bool FGESHandler::IsValidLowLevelNoSpam(UObject* ObjectPtr)
+{
+	// As DEFAULT_ALIGNMENT is defined to 0 now, I changed that to the original numerical value here
+	const int32 AlignmentCheck = MIN_ALIGNMENT - 1;
+
+	// Check 'this' pointer before trying to access any of the Object's members
+	if ((ObjectPtr == nullptr) || (UPTRINT)ObjectPtr < 0x100)
+	{
+		return false;
+	}
+	if ((UPTRINT)ObjectPtr & AlignmentCheck)
+	{
+		return false;
+	}
+	if (*(void**)ObjectPtr == nullptr)
+	{
+		return false;
+	}
+
+	// These should all be 0.
+	const UPTRINT CheckZero = (ObjectPtr->GetFlags() & ~RF_AllFlags) | ((UPTRINT)ObjectPtr->GetClass() & AlignmentCheck) | ((UPTRINT)ObjectPtr->GetOuter() & AlignmentCheck);
+	if (!!CheckZero)
+	{
+		return false;
+	}
+	// These should all be non-NULL (except CDO-alignment check which should be 0)
+	if (ObjectPtr->GetClass() == nullptr || ObjectPtr->GetClass()->ClassDefaultObject == nullptr || ((UPTRINT)ObjectPtr->GetClass()->ClassDefaultObject & AlignmentCheck) != 0)
+	{
+		return false;
+	}
+	// Lightweight versions of index checks.
+	if (!GUObjectArray.IsValidIndex(ObjectPtr) || !ObjectPtr->GetFName().IsValidIndexFast())
+	{
+		return false;
+	}
+	return true;
+}
+
 TSharedPtr<FGESHandler> FGESHandler::DefaultHandler()
 {
 	/*if (!FGESHandler::PrivateDefaultHandler.IsValid())
@@ -135,6 +174,7 @@ void FGESHandler::AddListener(const FString& Domain, const FString& EventName, c
 			EmitData.PropertyPtr = Event.PinnedData.PropertyPtr;
 			EmitData.bPinned = Event.bPinned;
 			EmitData.SpecificTarget = (FGESEventListener*)&Listener;	//this immediate call should only be calling our listener
+			EmitData.WorldContext = Event.WorldContext;
 			
 			//did we fail to emit?
 			if (!EmitEvent(EmitData))
@@ -149,7 +189,7 @@ void FGESHandler::AddListener(const FString& Domain, const FString& EventName, c
 	}
 	else
 	{
-		if (Listener.Receiver->IsValidLowLevel())
+		if (IsValidLowLevelNoSpam(Listener.Receiver))
 		{
 			UE_LOG(LogTemp, Warning, TEXT("FGESHandler::AddListener Warning: \n%s does not have the function '%s'. Attempted to bind to GESEvent %s.%s"), *Listener.Receiver->GetFullName(), *Listener.FunctionName, *Domain, *EventName);
 		}
@@ -179,6 +219,7 @@ void FGESHandler::EmitToListenersWithData(const FGESEmitData& EmitData, TFunctio
 		CreateEvent(EmitData.Domain, EmitData.Event, false);
 	}
 	FGESEvent& Event = FunctionMap[KeyString];
+	Event.WorldContext = EmitData.WorldContext;
 
 	//is there a property to pin?
 	if (EmitData.Property)
@@ -214,7 +255,7 @@ void FGESHandler::EmitToListenersWithData(const FGESEmitData& EmitData, TFunctio
 		FGESEventListener Listener = *EmitData.SpecificTarget;
 
 		//Check validity of receiver and function and call the function
-		if (Listener.Receiver->IsValidLowLevel())
+		if (IsValidLowLevelNoSpam(Listener.Receiver))
 		{
 			UFunction* BPFunction = Listener.Receiver->FindFunction(FName(*Listener.FunctionName));
 			if (BPFunction != nullptr)
@@ -238,7 +279,7 @@ void FGESHandler::EmitToListenersWithData(const FGESEmitData& EmitData, TFunctio
 		for (FGESEventListener& Listener : Event.Listeners)
 		{
 			//Check validity of receiver and function and call the function
-			if (Listener.Receiver->IsValidLowLevel())
+			if (IsValidLowLevelNoSpam(Listener.Receiver))
 			{
 				UFunction* BPFunction = Listener.Receiver->FindFunction(FName(*Listener.FunctionName));
 				if (BPFunction != nullptr)
@@ -381,7 +422,7 @@ void FGESHandler::EmitEvent(const FGESEmitData& EmitData, const FName& ParamData
 
 bool FGESHandler::EmitEvent(const FGESEmitData& EmitData)
 {
-	if (!EmitData.WorldContext->IsValidLowLevel() || !EmitData.WorldContext->GetWorld()->IsValidLowLevel())
+	if ( !IsValidLowLevelNoSpam(EmitData.WorldContext) ) //|| !IsValidLowLevelNoSpam(EmitData.WorldContext->GetWorld())
 	{
 		//Remove this event, it's emit context is invalid
 		DeleteEvent(EmitData.Domain, EmitData.Event);
@@ -520,7 +561,7 @@ void FGESPinnedData::CopyPropertyToPinnedBuffer()
 
 void FGESPinnedData::CleanupPinnedData()
 {
-	if (Property != nullptr && Property->IsValidLowLevel())
+	if (FGESHandler::IsValidLowLevelNoSpam(Property))
 	{
 		Property->RemoveFromRoot();
 	}

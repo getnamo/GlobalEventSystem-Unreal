@@ -52,10 +52,12 @@ struct FGESEvent
 	FString Domain;
 	FString Event;
 	TArray<FGESEventListener> Listeners;
+	UObject* WorldContext;
 
 	FGESEvent() 
 	{ 
 		PinnedData = FGESPinnedData();
+		WorldContext = nullptr;
 	}
 
 	//todo: add restrictions e.g. must apply interface, 
@@ -80,6 +82,7 @@ struct FGESEmitData
 		Property = nullptr;
 		PropertyPtr = nullptr;
 		SpecificTarget = nullptr;
+		WorldContext = nullptr;
 	}
 };
 
@@ -168,6 +171,9 @@ public:
 	FGESHandler();
 	~FGESHandler();
 
+	//no log spam version of checking low level objects
+	static bool IsValidLowLevelNoSpam(UObject* ObjectPtr);
+
 private:
 	static TSharedPtr<FGESHandler> PrivateDefaultHandler;
 
@@ -181,6 +187,10 @@ private:
 
 	//this function logs warnings otherwise
 	static bool FunctionHasValidParams(UFunction* Function, UClass* ClassType, const FGESEmitData& EmitData, const FGESEventListener& Listener);
+
+
+	
+	
 
 	//Key == TargetDomain.TargetFunction
 	TMap<FString, FGESEvent> FunctionMap;
