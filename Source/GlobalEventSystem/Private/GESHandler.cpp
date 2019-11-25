@@ -3,6 +3,67 @@
 TSharedPtr<FGESHandler> FGESHandler::PrivateDefaultHandler = MakeShareable(new FGESHandler());
 
 
+bool FGESHandler::FirstParamIsCppType(UFunction* Function, const FString& TypeString)
+{
+	//Check function signature
+	TFieldIterator<UProperty> Iterator(Function);
+
+	TArray<UProperty*> Properties;
+	while (Iterator && (Iterator->PropertyFlags & CPF_Parm))
+	{
+		UProperty* Prop = *Iterator;
+		Properties.Add(Prop);
+		++Iterator;
+	}
+	const FString& FirstParam = Properties[0]->GetCPPType();
+	return (FirstParam == TypeString);
+}
+
+bool FGESHandler::FirstParamIsSubclassOf(UFunction* Function, UClass* ClassType)
+{
+	TFieldIterator<UProperty> Iterator(Function);
+
+	TArray<UProperty*> Properties;
+	while (Iterator && (Iterator->PropertyFlags & CPF_Parm))
+	{
+		UProperty* Prop = *Iterator;
+		Properties.Add(Prop);
+		++Iterator;
+	}
+	return Properties[0]->GetClass()->IsChildOf(ClassType);
+}
+
+FString FGESHandler::ListenerLogString(const FGESEventListener& Listener)
+{
+	return Listener.Receiver->GetName() + TEXT(":") + Listener.FunctionName;
+}
+
+FString FGESHandler::EventLogString(const FGESEvent& Event)
+{
+	return Event.Domain + TEXT(".") + Event.Event;
+}
+
+FString FGESHandler::EmitEventLogString(const FGESEmitData& EmitData)
+{
+	return EmitData.Domain + TEXT(".") + EmitData.Event;
+}
+
+bool FGESHandler::FunctionHasValidParams(UFunction* Function, UClass* ClassType, const FGESEmitData& EmitData, const FGESEventListener& Listener)
+{
+	if (FirstParamIsSubclassOf(Function, ClassType))
+	{
+		return true;
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("FGESHandler::EmitEvent %s skipped listener %s due to function not having a matching %s signature."),
+			*EmitEventLogString(EmitData),
+			*ListenerLogString(Listener),
+			*ClassType->GetName());
+		return false;
+	}
+}
+
 TSharedPtr<FGESHandler> FGESHandler::DefaultHandler()
 {
 	/*if (!FGESHandler::PrivateDefaultHandler.IsValid())
@@ -192,52 +253,70 @@ void FGESHandler::EmitToListenersWithData(const FGESEmitData& EmitData, TFunctio
 
 void FGESHandler::EmitEvent(const FGESEmitData& EmitData, UStruct* Struct, void* StructPtr)
 {
-	EmitToListenersWithData(EmitData, [Struct, StructPtr](const FGESEventListener& Listener)
+	EmitToListenersWithData(EmitData, [&EmitData, Struct, StructPtr](const FGESEventListener& Listener)
 	{
-		Listener.Receiver->ProcessEvent(Listener.Function, StructPtr);
+		if (FunctionHasValidParams(Listener.Function, UStructProperty::StaticClass(), EmitData, Listener))
+		{
+			Listener.Receiver->ProcessEvent(Listener.Function, StructPtr);
+		}
 	});
 }
 
 void FGESHandler::EmitEvent(const FGESEmitData& EmitData, const FString& ParamData)
 {
 	FString MutableParamString = ParamData;
-	EmitToListenersWithData(EmitData, [&MutableParamString](const FGESEventListener& Listener)
+	EmitToListenersWithData(EmitData, [&EmitData, &MutableParamString](const FGESEventListener& Listener)
 	{
-		Listener.Receiver->ProcessEvent(Listener.Function, &MutableParamString);
+		if (FunctionHasValidParams(Listener.Function, UStrProperty::StaticClass(), EmitData, Listener))
+		{
+			Listener.Receiver->ProcessEvent(Listener.Function, &MutableParamString);
+		}
 	});
 }
 
 void FGESHandler::EmitEvent(const FGESEmitData& EmitData, UObject* ParamData)
 {
-	EmitToListenersWithData(EmitData, [ParamData](const FGESEventListener& Listener)
+	EmitToListenersWithData(EmitData, [&EmitData, ParamData](const FGESEventListener& Listener)
 	{
-		FGESDynamicArg ParamWrapper;
-		ParamWrapper.Arg01 = ParamData;
-		Listener.Receiver->ProcessEvent(Listener.Function, &ParamWrapper);
+		if (FunctionHasValidParams(Listener.Function, UObjectProperty::StaticClass(), EmitData, Listener))
+		{
+			FGESDynamicArg ParamWrapper;
+			ParamWrapper.Arg01 = ParamData;
+			Listener.Receiver->ProcessEvent(Listener.Function, &ParamWrapper);
+		}
 	});
 }
 
 void FGESHandler::EmitEvent(const FGESEmitData& EmitData, float ParamData)
 {
-	EmitToListenersWithData(EmitData, [&ParamData](const FGESEventListener& Listener)
+	EmitToListenersWithData(EmitData, [&EmitData, &ParamData](const FGESEventListener& Listener)
 	{
-		Listener.Receiver->ProcessEvent(Listener.Function, &ParamData);
+		if (FunctionHasValidParams(Listener.Function, UNumericProperty::StaticClass(), EmitData, Listener))
+		{
+			Listener.Receiver->ProcessEvent(Listener.Function, &ParamData);
+		}
 	});
 }
 
 void FGESHandler::EmitEvent(const FGESEmitData& EmitData, int32 ParamData)
 {
-	EmitToListenersWithData(EmitData, [&ParamData](const FGESEventListener& Listener)
+	EmitToListenersWithData(EmitData, [&EmitData, &ParamData](const FGESEventListener& Listener)
 	{
-		Listener.Receiver->ProcessEvent(Listener.Function, &ParamData);
+		if (FunctionHasValidParams(Listener.Function, UNumericProperty::StaticClass(), EmitData, Listener))
+		{
+			Listener.Receiver->ProcessEvent(Listener.Function, &ParamData);
+		}
 	});
 }
 
 void FGESHandler::EmitEvent(const FGESEmitData& EmitData, bool ParamData)
 {
-	EmitToListenersWithData(EmitData, [&ParamData](const FGESEventListener& Listener)
+	EmitToListenersWithData(EmitData, [&EmitData, &ParamData](const FGESEventListener& Listener)
 	{
-		Listener.Receiver->ProcessEvent(Listener.Function, &ParamData);
+		if (FunctionHasValidParams(Listener.Function, UBoolProperty::StaticClass(), EmitData, Listener))
+		{
+			Listener.Receiver->ProcessEvent(Listener.Function, &ParamData);
+		}
 	});
 }
 
@@ -268,7 +347,7 @@ void FGESHandler::EmitEvent(const FGESEmitData& EmitData)
 			{
 				UE_LOG(LogTemp, Warning, TEXT("FGESHandler::EmitEvent %s tried to emit an empty event to %s receiver expecting parameters."), 
 					*EmitData.Event,
-					*Listener.Receiver->GetFullName());
+					*Listener.Receiver->GetName());
 			}
 		});
 	}

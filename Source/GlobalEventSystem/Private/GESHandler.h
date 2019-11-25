@@ -143,6 +143,16 @@ public:
 private:
 	static TSharedPtr<FGESHandler> PrivateDefaultHandler;
 
+	//can check function signature vs e.g. FString
+	static bool FirstParamIsCppType(UFunction* Function, const FString& TypeString);
+	static bool FirstParamIsSubclassOf(UFunction* Function, UClass* ClassType);
+	static FString ListenerLogString(const FGESEventListener& Listener);
+	static FString EventLogString(const FGESEvent& Event);
+	static FString EmitEventLogString(const FGESEmitData& EmitData);
+
+	//this function logs warnings otherwise
+	static bool FunctionHasValidParams(UFunction* Function, UClass* ClassType, const FGESEmitData& EmitData, const FGESEventListener& Listener);
+
 	//Key == TargetDomain.TargetFunction
 	TMap<FString, FGESEvent> FunctionMap;
 	TArray<FGESEventListener*> RemovalArray;
