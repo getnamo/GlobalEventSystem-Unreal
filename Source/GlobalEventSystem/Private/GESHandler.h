@@ -82,6 +82,11 @@ struct FGESEmitData
 	}
 };
 
+struct FGESDynamicArg
+{
+	void* Arg01;
+};
+
 class FGESHandler
 {
 public:
@@ -122,10 +127,12 @@ public:
 	//overloaded emits
 	void EmitEvent(const FGESEmitData& EmitData, UStruct* Struct, void* StructPtr);
 	void EmitEvent(const FGESEmitData& EmitData, const FString& ParamData);
+	void EmitEvent(const FGESEmitData& EmitData, UObject* ParamData);
 	void EmitEvent(const FGESEmitData& EmitData, float ParamData);
 	void EmitEvent(const FGESEmitData& EmitData, int32 ParamData);
 	void EmitEvent(const FGESEmitData& EmitData, bool ParamData);
 	void EmitEvent(const FGESEmitData& EmitData);
+	
 
 
 	static FString Key(const FString& Domain, const FString& Event);
