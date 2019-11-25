@@ -1,6 +1,7 @@
 #pragma once
 #include "UObject/Object.h"
 #include "UObject/UnrealType.h"
+#include "GESWorldListenerActor.h"
 
 struct FGESEventListener
 {
@@ -123,6 +124,8 @@ public:
 	*/
 	void DeleteEvent(const FString& Domain, const FString& Event);
 
+	void DeleteEvent(const FString& DomainAndEvent);
+
 	/** 
 	*	Check if event exists
 	*/
@@ -171,9 +174,6 @@ public:
 	FGESHandler();
 	~FGESHandler();
 
-	//no log spam version of checking low level objects
-	static bool IsValidLowLevelNoSpam(UObject* ObjectPtr);
-
 private:
 	static TSharedPtr<FGESHandler> PrivateDefaultHandler;
 
@@ -188,14 +188,12 @@ private:
 	//this function logs warnings otherwise
 	static bool FunctionHasValidParams(UFunction* Function, UClass* ClassType, const FGESEmitData& EmitData, const FGESEventListener& Listener);
 
-
-	
-	
-
 	//Key == TargetDomain.TargetFunction
-	TMap<FString, FGESEvent> FunctionMap;
+	TMap<FString, FGESEvent> EventMap;
 	TArray<FGESEventListener*> RemovalArray;
 
 	//Toggles
 	FGESHandlerOptions Options;
+
+	TMap<UWorld*, AGESWorldListenerActor*> WorldMap;
 };

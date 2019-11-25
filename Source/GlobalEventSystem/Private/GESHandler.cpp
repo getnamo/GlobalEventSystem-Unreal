@@ -71,45 +71,6 @@ bool FGESHandler::FunctionHasValidParams(UFunction* Function, UClass* ClassType,
 	}
 }
 
-//From IsValidLowLevelFast, but without logs
-bool FGESHandler::IsValidLowLevelNoSpam(UObject* ObjectPtr)
-{
-	// As DEFAULT_ALIGNMENT is defined to 0 now, I changed that to the original numerical value here
-	const int32 AlignmentCheck = MIN_ALIGNMENT - 1;
-
-	// Check 'this' pointer before trying to access any of the Object's members
-	if ((ObjectPtr == nullptr) || (UPTRINT)ObjectPtr < 0x100)
-	{
-		return false;
-	}
-	if ((UPTRINT)ObjectPtr & AlignmentCheck)
-	{
-		return false;
-	}
-	if (*(void**)ObjectPtr == nullptr)
-	{
-		return false;
-	}
-
-	// These should all be 0.
-	const UPTRINT CheckZero = (ObjectPtr->GetFlags() & ~RF_AllFlags) | ((UPTRINT)ObjectPtr->GetClass() & AlignmentCheck) | ((UPTRINT)ObjectPtr->GetOuter() & AlignmentCheck);
-	if (!!CheckZero)
-	{
-		return false;
-	}
-	// These should all be non-NULL (except CDO-alignment check which should be 0)
-	if (ObjectPtr->GetClass() == nullptr || ObjectPtr->GetClass()->ClassDefaultObject == nullptr || ((UPTRINT)ObjectPtr->GetClass()->ClassDefaultObject & AlignmentCheck) != 0)
-	{
-		return false;
-	}
-	// Lightweight versions of index checks.
-	if (!GUObjectArray.IsValidIndex(ObjectPtr) || !ObjectPtr->GetFName().IsValidIndexFast())
-	{
-		return false;
-	}
-	return true;
-}
-
 TSharedPtr<FGESHandler> FGESHandler::DefaultHandler()
 {
 	/*if (!FGESHandler::PrivateDefaultHandler.IsValid())
@@ -125,41 +86,46 @@ void FGESHandler::CreateEvent(const FString& Domain, const FString& Event, bool 
 	CreatedFunction.Domain = Domain;
 	CreatedFunction.Event = Event;
 	CreatedFunction.bPinned = bPinned;
-	FunctionMap.Add(Key(Domain, Event), CreatedFunction);
+	EventMap.Add(Key(Domain, Event), CreatedFunction);
 }
 
 void FGESHandler::DeleteEvent(const FString& Domain, const FString& Event)
 {
-	FunctionMap.Remove(Key(Domain, Event));
+	EventMap.Remove(Key(Domain, Event));
+}
+
+void FGESHandler::DeleteEvent(const FString& DomainAndEvent)
+{
+	EventMap.Remove(DomainAndEvent);
 }
 
 bool FGESHandler::HasEvent(const FString& Domain, const FString& Event)
 {
-	return FunctionMap.Contains(Key(Domain, Event));
+	return EventMap.Contains(Key(Domain, Event));
 }
 
 void FGESHandler::UnpinEvent(const FString& Domain, const FString& EventName)
 {
 	FString KeyString = Key(Domain, EventName);
-	if (FunctionMap.Contains(KeyString))
+	if (EventMap.Contains(KeyString))
 	{
-		FGESEvent& Event = FunctionMap[KeyString];
+		FGESEvent& Event = EventMap[KeyString];
 		Event.bPinned = false;
 		Event.PinnedData.Property->RemoveFromRoot();
-		//Event.PinnedData.PropertyData.Empty();
+		//Event.PinnedData.PropertyData.Empty();  not sure if safe to delete instead of rebuilding on next pin
 	}
 }
 
 void FGESHandler::AddListener(const FString& Domain, const FString& EventName, const FGESEventListener& Listener)
 {
 	FString KeyString = Key(Domain, EventName);
-	if (!FunctionMap.Contains(KeyString))
+	if (!EventMap.Contains(KeyString))
 	{
 		CreateEvent(Domain, EventName);
 	}
 	if (Listener.IsValidListener())
 	{
-		FGESEvent& Event = FunctionMap[KeyString];
+		FGESEvent& Event = EventMap[KeyString];
 		Event.Listeners.Add(Listener);
 
 		//if it's pinned re-emit it immediately to this listener
@@ -189,7 +155,7 @@ void FGESHandler::AddListener(const FString& Domain, const FString& EventName, c
 	}
 	else
 	{
-		if (IsValidLowLevelNoSpam(Listener.Receiver))
+		if (Listener.Receiver->IsValidLowLevelFast())
 		{
 			UE_LOG(LogTemp, Warning, TEXT("FGESHandler::AddListener Warning: \n%s does not have the function '%s'. Attempted to bind to GESEvent %s.%s"), *Listener.Receiver->GetFullName(), *Listener.FunctionName, *Domain, *EventName);
 		}
@@ -203,23 +169,43 @@ void FGESHandler::AddListener(const FString& Domain, const FString& EventName, c
 void FGESHandler::RemoveListener(const FString& Domain, const FString& Event, const FGESEventListener& Listener)
 {
 	FString KeyString = Key(Domain, Event);
-	if (!FunctionMap.Contains(KeyString))
+	if (!EventMap.Contains(KeyString))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("FGESHandler::RemoveListener, tried to remove a listener from an event that doesn't exist. Ignored."));
 		return;
 	}
-	FunctionMap[KeyString].Listeners.Remove(Listener);
+	EventMap[KeyString].Listeners.Remove(Listener);
 }
 
 void FGESHandler::EmitToListenersWithData(const FGESEmitData& EmitData, TFunction<void(const FGESEventListener&)> DataFillCallback)
 {
 	FString KeyString = Key(EmitData.Domain, EmitData.Event);
-	if (!FunctionMap.Contains(KeyString))
+	if (!EventMap.Contains(KeyString))
 	{
 		CreateEvent(EmitData.Domain, EmitData.Event, false);
 	}
-	FGESEvent& Event = FunctionMap[KeyString];
+	FGESEvent& Event = EventMap[KeyString];
 	Event.WorldContext = EmitData.WorldContext;
+	UWorld* World = Event.WorldContext->GetWorld();
+
+	//Attach a world listener to each unique world
+	if (!WorldMap.Contains(World))
+	{
+		AGESWorldListenerActor* WorldListener = World->SpawnActor<AGESWorldListenerActor>();
+		WorldListener->OnEndPlay = [this, WorldListener, World]
+		{
+			for (const FString& EventKey : WorldListener->WorldEvents)
+			{
+				DeleteEvent(EventKey);
+			}
+			WorldListener->WorldEvents.Empty();
+			WorldMap.Remove(World);
+		};
+		WorldMap.Add(World, WorldListener);
+	}
+
+	//ensure this event is registered
+	WorldMap[World]->WorldEvents.Add(KeyString);
 
 	//is there a property to pin?
 	if (EmitData.Property)
@@ -255,7 +241,7 @@ void FGESHandler::EmitToListenersWithData(const FGESEmitData& EmitData, TFunctio
 		FGESEventListener Listener = *EmitData.SpecificTarget;
 
 		//Check validity of receiver and function and call the function
-		if (IsValidLowLevelNoSpam(Listener.Receiver))
+		if (Listener.Receiver->IsValidLowLevelFast())
 		{
 			UFunction* BPFunction = Listener.Receiver->FindFunction(FName(*Listener.FunctionName));
 			if (BPFunction != nullptr)
@@ -279,7 +265,7 @@ void FGESHandler::EmitToListenersWithData(const FGESEmitData& EmitData, TFunctio
 		for (FGESEventListener& Listener : Event.Listeners)
 		{
 			//Check validity of receiver and function and call the function
-			if (IsValidLowLevelNoSpam(Listener.Receiver))
+			if (Listener.Receiver->IsValidLowLevelFast())
 			{
 				UFunction* BPFunction = Listener.Receiver->FindFunction(FName(*Listener.FunctionName));
 				if (BPFunction != nullptr)
@@ -422,7 +408,7 @@ void FGESHandler::EmitEvent(const FGESEmitData& EmitData, const FName& ParamData
 
 bool FGESHandler::EmitEvent(const FGESEmitData& EmitData)
 {
-	if ( !IsValidLowLevelNoSpam(EmitData.WorldContext) ) //|| !IsValidLowLevelNoSpam(EmitData.WorldContext->GetWorld())
+	if (EmitData.WorldContext && !EmitData.WorldContext->IsValidLowLevelFast() )
 	{
 		//Remove this event, it's emit context is invalid
 		DeleteEvent(EmitData.Domain, EmitData.Event);
@@ -544,7 +530,7 @@ FGESHandler::~FGESHandler()
 			Pair.Value.PinnedData.CleanupPinnedData();
 		}
 	}*/
-	FunctionMap.Empty();
+	EventMap.Empty();
 }
 
 void FGESPinnedData::CopyPropertyToPinnedBuffer()
@@ -561,7 +547,7 @@ void FGESPinnedData::CopyPropertyToPinnedBuffer()
 
 void FGESPinnedData::CleanupPinnedData()
 {
-	if (FGESHandler::IsValidLowLevelNoSpam(Property))
+	if (Property && Property->IsValidLowLevelFast())
 	{
 		Property->RemoveFromRoot();
 	}
