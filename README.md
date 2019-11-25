@@ -31,7 +31,7 @@ Whether the event should trigger for listeners added after the event has fired. 
 A string type similar to a namespace with reverse-DNS like structure encouraged, but not enforced. By default there is a ```global.default``` prefilled which can be changed to any valid utf8 string.
 
 ##### Param: Event
-This is an abstract name and is considered unique for that domain. You'll need the same domain and event name to match in your emitting function to receive the event.
+This is an abstract name and is considered unique for that domain. You'll need the same domain and event name to match in your binding function to receive the event.
 
 #### ```GESEmitEventOneParam```
 
