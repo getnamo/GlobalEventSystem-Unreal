@@ -1,7 +1,10 @@
 # global-event-system-ue4
 A loosely coupled internal global event system (GES) plugin for the Unreal Engine. Aims to solve cross-map and cross-blueprint communication for reliable and inferable event flow.
 
-Because the events are emitted to a dynamic map of listeners you can loosely link parts of your project without needing to redo boilerplate when you change parts of the code, dynamically change environments, or load a different submap. Fire something away, and if something is interested in that information, they can do something with it; optional.
+[![GitHub release](https://img.shields.io/github/release/getnamo/global-event-system-ue4.svg)](https://github.com/getnamo/global-event-system-ue4/releases)
+[![Github All Releases](https://img.shields.io/github/downloads/getnamo/global-event-system-ue4/total.svg)](https://github.com/getnamo/global-event-system-ue4/releases)
+
+Because the events are emitted to a dynamic map of listeners you can loosely link parts of your project without needing to redo boilerplate when you change parts of the code, dynamically change environments, or e.g. load a different submap. Fire something away, and if something is interested in that information, they can do something with it; optional.
 
 Questions? See https://github.com/getnamo/global-event-system-ue4/issues
 
