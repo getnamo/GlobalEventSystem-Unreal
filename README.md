@@ -73,7 +73,7 @@ There are some simple options to toggle some log messages and detailed struct ty
 
 ## Examples
 
-Keep in mind that you can start using GES incrementally for specific tasks or parts of large projects instead of replacing too many parts at once. Below are some simple examples where GES could be useful.
+Keep in mind that you can start using GES incrementally for specific tasks or parts of large projects instead of replacing too many parts at once. Below are some very basic examples where GES could be useful.
 
 ### Cross-map reference pinning
 Let's say you had two actors in two different sub-maps and you wanted one actor to know that it has spawned from e.g. some dynamic process. Delay nodes shown below are only used to show example event delays due to e.g. async processing or waiting on something else to happend; not needed for function.
@@ -100,7 +100,7 @@ Blueprints which would listen to the SAReady event, don't even have to care wher
 ## When not to use GES
 - There are some performance considerations to keep in mind. While the overall architecture is fairly optimized, it can be more expensive than a simple function call due to function and type checking. Consider it appropriate for signaling more than a hammer to use everywhere.
 
-- If your objects have a tight coupling or it's easily accesible in a tree hierarchy pattern I would use standard methods instead of GES.
+- If your objects have a tight coupling or it's easily accessible in a tree hierarchy pattern I would use standard methods instead of GES.
 
 - Background threads. Current version is not thread safe.
 
