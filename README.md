@@ -89,7 +89,7 @@ and in the other actor you could bind to that event to do something with that in
 
 This is the case where pinning the event would help as now when the receiving actor binds to the event, it will auto-matically receive the last emit even though it was called after the event was emitted. From a developer perspective you can now just handle the receiving logic and not worry about whether you need to add delays or loop through all actors in the map. By arranging your events to signal selectively states and muxing those states you can ensure that the order of your events remains predictable; only start x when part y and z in the map have happened.
 
-### Flow muxing and Loose coupling
+### Flow muxing and loose coupling
 
 You can add a simple actor to the map which listens to various GES events. When for example two of those events have fired you can fire off another event which is a composite logic of the source events e.g. ANDGate or much more complex logic if we decide to use variable state.
 
