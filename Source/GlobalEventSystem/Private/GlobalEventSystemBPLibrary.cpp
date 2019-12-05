@@ -214,25 +214,10 @@ bool UGlobalEventSystemBPLibrary::Conv_PropToName(const FGESWildcardProperty& In
 	}
 }
 
-void UGlobalEventSystemBPLibrary::Conv_PropToStruct(const FGESWildcardProperty& InProp, UProperty*& OutStruct)
+bool UGlobalEventSystemBPLibrary::Conv_PropToStruct(const FGESWildcardProperty& InProp, UProperty*& OutStruct)
 {
-	/*if (InProp.Property->IsA<UStructProperty>())
-	{
-		UStructProperty* StructProperty = Cast<UStructProperty>(InProp.Property);
-		//OutStruct = InProp.Property;
-		//StructProperty->Struct->
-		//StructProperty->ContainerPtrToValuePtrForDefaults(StructProperty->Struct);
-		//OutStruct->CopyCompleteValue(StructProperty->Value)
-		//TODO figure out how to copy... wait a minute we can do a custom thunk to get struct ptr! yay...
-		UE_LOG(LogTemp, Warning, TEXT("UStructProperty not supported due to lack of copy operation. TBC"));
-		return false;
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("UGlobalEventSystemBPLibrary::Conv_PropToStruct %s is not a Struct."), *InProp.Property->GetName());
-		return false;
-	}*/
-	//return false;
+	//doesn't get called due to custom thunk
+	return false;
 }
 
 bool UGlobalEventSystemBPLibrary::HandlePropToStruct(const FGESWildcardProperty& InProp, FGESWildcardProperty& OutProp)

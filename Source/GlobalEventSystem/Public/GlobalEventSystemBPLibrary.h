@@ -81,7 +81,7 @@ class UGlobalEventSystemBPLibrary : public UBlueprintFunctionLibrary
 	static bool Conv_PropToName(const FGESWildcardProperty& InProp, FName& OutName);
 
 	UFUNCTION(BlueprintPure, CustomThunk, meta = (DisplayName = "To Struct (Wildcard Property)", CustomStructureParam = "OutStruct", BlueprintAutocast), Category = "Utilities|SocketIO")
-	static void Conv_PropToStruct(const FGESWildcardProperty& InProp, UProperty*& OutStruct);
+	static bool Conv_PropToStruct(const FGESWildcardProperty& InProp, UProperty*& OutStruct);
 
 	UFUNCTION(BlueprintPure, meta = (DisplayName = "To Object (Wildcard Property)", BlueprintAutocast), Category = "Utilities|SocketIO")
 	static bool Conv_PropToObject(const FGESWildcardProperty& InProp, UObject*& OutObject);
@@ -113,7 +113,7 @@ class UGlobalEventSystemBPLibrary : public UBlueprintFunctionLibrary
 
 	DECLARE_FUNCTION(execConv_PropToStruct)
 	{
-		//Stack.MostRecentProperty = nullptr;
+		Stack.MostRecentProperty = nullptr;
 		FGESWildcardProperty InProp;
 		FGESWildcardProperty OutProp;
 		
@@ -127,11 +127,14 @@ class UGlobalEventSystemBPLibrary : public UBlueprintFunctionLibrary
 
 		OutProp.Property = ParameterProp;
 		OutProp.PropertyPtr = PropPtr;
+		bool bDidCopy = false;
 
 		P_FINISH;
 		P_NATIVE_BEGIN;
-		bool bDidCopy = HandlePropToStruct(InProp, OutProp);
+		bDidCopy = HandlePropToStruct(InProp, OutProp);	//todo: add return support
 		P_NATIVE_END;
+
+		*(bool*)RESULT_PARAM = bDidCopy;
 	}
 
 
