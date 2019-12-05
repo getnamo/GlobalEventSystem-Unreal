@@ -219,8 +219,12 @@ bool UGlobalEventSystemBPLibrary::Conv_PropToStruct(const FGESWildcardProperty& 
 	if (InProp.Property->IsA<UStructProperty>())
 	{
 		UStructProperty* StructProperty = Cast<UStructProperty>(InProp.Property);
-		OutStruct = (UProperty*)InProp.PropertyPtr;
-		return true;
+		//OutStruct = InProp.Property;
+		//StructProperty->Struct->
+		//StructProperty->ContainerPtrToValuePtrForDefaults(StructProperty->Struct);
+		//OutStruct->CopyCompleteValue(StructProperty->Value)
+		UE_LOG(LogTemp, Warning, TEXT("UStructProperty not supported due to lack of copy operation. TBC"));
+		return false;
 	}
 	else
 	{
@@ -231,7 +235,7 @@ bool UGlobalEventSystemBPLibrary::Conv_PropToStruct(const FGESWildcardProperty& 
 
 bool UGlobalEventSystemBPLibrary::Conv_PropToObject(const FGESWildcardProperty& InProp, UObject*& OutObject)
 {
-	if (InProp.Property->IsA<UNumericProperty>())
+	if (InProp.Property->IsA<UObjectProperty>())
 	{
 		UObjectProperty* Property = Cast<UObjectProperty>(InProp.Property);
 		OutObject = Property->GetPropertyValue(InProp.PropertyPtr);
