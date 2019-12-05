@@ -58,7 +58,7 @@ class UGlobalEventSystemBPLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintCallable, Category = "GlobalEventSystemOptions")
 	static void SetGESOptions(const FGESGlobalOptions& InOptions);
 
-	//Wildcard conversions, used in wildcard event delegates
+	//Wildcard conversions, used in wildcard event delegates from GESBindEventToWildcardDelegate
 
 	/** Convert wildcard property into a literal int */
 	UFUNCTION(BlueprintPure, meta = (DisplayName = "To Integer (Wildcard Property)", BlueprintAutocast), Category = "Utilities|SocketIO")
