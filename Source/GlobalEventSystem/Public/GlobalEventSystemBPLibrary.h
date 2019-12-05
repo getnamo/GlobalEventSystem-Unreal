@@ -30,7 +30,7 @@ class UGlobalEventSystemBPLibrary : public UBlueprintFunctionLibrary
 	* Bind an event delegate to GES event. Use blueprint utility to decode UProperty.
 	*/
 	UFUNCTION(BlueprintCallable, meta = (Keywords = "ges create listen", WorldContext = "WorldContextObject"), Category = "GlobalEventSystem")
-	static void GESBindEventToDelegate(UObject* WorldContextObject, const FGESOnePropertySignature& ReceivingFunction, const FString& Domain = TEXT("global.default"), const FString& Event = TEXT(""));
+	static void GESBindEventToWildcardDelegate(UObject* WorldContextObject, const FGESOnePropertySignature& ReceivingFunction, const FString& Domain = TEXT("global.default"), const FString& Event = TEXT(""));
 
 	/** 
 	* Emit desired event with data. Data can be any property (just not UObjects at this time). 
@@ -57,6 +57,30 @@ class UGlobalEventSystemBPLibrary : public UBlueprintFunctionLibrary
 	*/
 	UFUNCTION(BlueprintCallable, Category = "GlobalEventSystemOptions")
 	static void SetGESOptions(const FGESGlobalOptions& InOptions);
+
+	//Wildcard conversions, used in wildcard event delegates
+
+	/** Convert wildcard property into a literal int */
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "To Integer (Wildcard Property)", BlueprintAutocast), Category = "Utilities|SocketIO")
+	static bool Conv_PropToInt(const FGESWildcardProperty& InProp, int32& OutInt);
+
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "To Float (Wildcard Property)", BlueprintAutocast), Category = "Utilities|SocketIO")
+	static bool Conv_PropToFloat(const FGESWildcardProperty& InProp, float& OutFloat);
+
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "To Bool (Wildcard Property)", BlueprintAutocast), Category = "Utilities|SocketIO")
+	static bool Conv_PropToBool(const FGESWildcardProperty& InProp, bool& OutBool);
+
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "To String (Wildcard Property)", BlueprintAutocast), Category = "Utilities|SocketIO")
+	static bool Conv_PropToString(const FGESWildcardProperty& InProp, FString& OutString);
+
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "To Name (Wildcard Property)", BlueprintAutocast), Category = "Utilities|SocketIO")
+	static bool Conv_PropToName(const FGESWildcardProperty& InProp, FName& OutName);
+
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "To Struct (Wildcard Property)", CustomStructureParam = "OutStruct", BlueprintAutocast), Category = "Utilities|SocketIO")
+	static bool Conv_PropToStruct(const FGESWildcardProperty& InProp, UProperty*& OutStruct);
+
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "To Object (Wildcard Property)", BlueprintAutocast), Category = "Utilities|SocketIO")
+	static bool Conv_PropToObject(const FGESWildcardProperty& InProp, UObject*& OutObject);
 
 	//Convert property into c++ accessible form
 	DECLARE_FUNCTION(execGESEmitEventOneParam)

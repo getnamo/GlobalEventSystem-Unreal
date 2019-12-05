@@ -242,13 +242,13 @@ void FGESHandler::EmitToListenersWithData(const FGESEmitData& EmitData, TFunctio
 		//Check validity of receiver and function and call the function
 		if (Listener.Receiver->IsValidLowLevelFast())
 		{
-			if (Listener.OnePropertyFunctionDelegate)
+			if (Listener.bIsBoundToDelegate)
 			{
 				//this listener is handled by wildcard event delegate instead
-				FGESPropertyWrapper Wrapper;
+				FGESWildcardProperty Wrapper;
 				Wrapper.Property = EmitData.Property;
 				Wrapper.PropertyPtr = EmitData.PropertyPtr;
-				Listener.OnePropertyFunctionDelegate->ExecuteIfBound(Wrapper);
+				Listener.OnePropertyFunctionDelegate.ExecuteIfBound(Wrapper);
 				return;
 			}
 
@@ -276,13 +276,13 @@ void FGESHandler::EmitToListenersWithData(const FGESEmitData& EmitData, TFunctio
 			//Check validity of receiver and function and call the function
 			if (Listener.Receiver->IsValidLowLevelFast())
 			{
-				if (Listener.OnePropertyFunctionDelegate)
+				if (Listener.bIsBoundToDelegate)
 				{
 					//this listener is handled by wildcard event delegate instead
-					FGESPropertyWrapper Wrapper;
+					FGESWildcardProperty Wrapper;
 					Wrapper.Property = EmitData.Property;
 					Wrapper.PropertyPtr = EmitData.PropertyPtr;
-					Listener.OnePropertyFunctionDelegate->ExecuteIfBound(Wrapper);
+					Listener.OnePropertyFunctionDelegate.ExecuteIfBound(Wrapper);
 					return;
 				}
 
@@ -446,12 +446,12 @@ bool FGESHandler::EmitEvent(const FGESEmitData& EmitData)
 		EmitToListenersWithData(EmitData, [&EmitData](const FGESEventListener& Listener)
 		{
 			//If the listener bound it to a wildcard event delegate, emit with nullptr
-			if (Listener.OnePropertyFunctionDelegate)
+			if (Listener.bIsBoundToDelegate)
 			{
-				FGESPropertyWrapper Wrapper;
+				FGESWildcardProperty Wrapper;
 				Wrapper.Property = EmitData.Property;
 				Wrapper.PropertyPtr = EmitData.PropertyPtr;
-				Listener.OnePropertyFunctionDelegate->ExecuteIfBound(Wrapper);
+				Listener.OnePropertyFunctionDelegate.ExecuteIfBound(Wrapper);
 				return;
 			}
 			TFieldIterator<UProperty> Iterator(Listener.Function);

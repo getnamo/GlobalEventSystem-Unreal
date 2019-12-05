@@ -24,21 +24,21 @@ struct FGESGlobalOptions
 };
 
 USTRUCT(BlueprintType)
-struct FGESPropertyWrapper
+struct FGESWildcardProperty
 {
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(BlueprintReadOnly, Category = "GES Global Options")
 	UProperty* Property;
 
-	UPROPERTY()
-	TArray<uint8> PropertyMemory;
-
 	void* PropertyPtr;
+
+	//UPROPERTY()
+	//TArray<uint8> PropertyMemory;
 };
 
 DECLARE_DYNAMIC_DELEGATE(FGESEmptySignature);
-DECLARE_DYNAMIC_DELEGATE_OneParam(FGESOnePropertySignature, const FGESPropertyWrapper&, WildcardProperty);
+DECLARE_DYNAMIC_DELEGATE_OneParam(FGESOnePropertySignature, const FGESWildcardProperty&, WildcardProperty);
 
 struct FGESEventListener
 {
@@ -49,11 +49,12 @@ struct FGESEventListener
 	UFunction* Function;
 
 	//Optionally we could be using an event delegate
-	FGESOnePropertySignature* OnePropertyFunctionDelegate;
+	bool bIsBoundToDelegate;
+	FGESOnePropertySignature OnePropertyFunctionDelegate;
 
 	FGESEventListener()
 	{
-		OnePropertyFunctionDelegate = nullptr;
+		bIsBoundToDelegate = false;
 	}
 
 	bool LinkFunction()
@@ -64,7 +65,7 @@ struct FGESEventListener
 
 	bool IsValidListener() const
 	{
-		return (Function != nullptr || OnePropertyFunctionDelegate != nullptr);
+		return (Function != nullptr || bIsBoundToDelegate);
 	}
 
 	bool operator ==(FGESEventListener const &Other) {
