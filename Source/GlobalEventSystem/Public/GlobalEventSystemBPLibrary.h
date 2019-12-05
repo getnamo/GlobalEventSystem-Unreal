@@ -70,8 +70,12 @@ class UGlobalEventSystemBPLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, meta = (DisplayName = "To Bool (Wildcard Property)", BlueprintAutocast), Category = "Utilities|SocketIO")
 	static bool Conv_PropToBool(const FGESWildcardProperty& InProp, bool& OutBool);
 
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "To String By Ref (Wildcard Property)", BlueprintAutocast), Category = "Utilities|SocketIO")
+	static bool Conv_PropToStringRef(const FGESWildcardProperty& InProp, FString& OutString);
+
+	/** Will still warn, but won't return a boolean for conversion status, used for auto-casting to print strings for debugging */
 	UFUNCTION(BlueprintPure, meta = (DisplayName = "To String (Wildcard Property)", BlueprintAutocast), Category = "Utilities|SocketIO")
-	static bool Conv_PropToString(const FGESWildcardProperty& InProp, FString& OutString);
+	static FString Conv_PropToString(const FGESWildcardProperty& InProp);
 
 	UFUNCTION(BlueprintPure, meta = (DisplayName = "To Name (Wildcard Property)", BlueprintAutocast), Category = "Utilities|SocketIO")
 	static bool Conv_PropToName(const FGESWildcardProperty& InProp, FName& OutName);

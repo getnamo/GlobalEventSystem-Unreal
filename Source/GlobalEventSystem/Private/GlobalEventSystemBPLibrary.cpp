@@ -86,7 +86,7 @@ bool UGlobalEventSystemBPLibrary::Conv_PropToInt(const FGESWildcardProperty& InP
 		{
 			UE_LOG(LogTemp, Warning, TEXT("UGlobalEventSystemBPLibrary::Conv_PropToInt %s is not an integer number, float truncated to int."), *InProp.Property->GetName());
 			OutInt = Property->GetFloatingPointPropertyValue(InProp.PropertyPtr);
-			return true;
+			return false;
 		}
 	}
 	else
@@ -110,7 +110,7 @@ bool UGlobalEventSystemBPLibrary::Conv_PropToFloat(const FGESWildcardProperty& I
 		{
 			UE_LOG(LogTemp, Warning, TEXT("UGlobalEventSystemBPLibrary::Conv_PropToFloat %s is not a floating number, converted int to float."), *InProp.Property->GetName());
 			OutFloat = Property->GetSignedIntPropertyValue(InProp.PropertyPtr);
-			return true;
+			return false;
 		}
 	}
 	else
@@ -135,7 +135,7 @@ bool UGlobalEventSystemBPLibrary::Conv_PropToBool(const FGESWildcardProperty& In
 	}
 }
 
-bool UGlobalEventSystemBPLibrary::Conv_PropToString(const FGESWildcardProperty& InProp, FString& OutString)
+bool UGlobalEventSystemBPLibrary::Conv_PropToStringRef(const FGESWildcardProperty& InProp, FString& OutString)
 {
 	if (InProp.Property->IsA<UStrProperty>())
 	{
@@ -145,9 +145,58 @@ bool UGlobalEventSystemBPLibrary::Conv_PropToString(const FGESWildcardProperty& 
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("UGlobalEventSystemBPLibrary::Conv_PropToString %s is not an FString."), *InProp.Property->GetName());
+		UE_LOG(LogTemp, Warning, TEXT("UGlobalEventSystemBPLibrary::Conv_PropToString %s is not an FString, attempted best conversion for display purposes."), *InProp.Property->GetName());
+
+		//Convert logic
+		if (InProp.Property->IsA<UNumericProperty>())
+		{
+			UNumericProperty* Property = Cast<UNumericProperty>(InProp.Property);
+			if (Property->IsFloatingPoint())
+			{
+				OutString = FString::SanitizeFloat(Property->GetFloatingPointPropertyValue(InProp.PropertyPtr));
+			}
+			else
+			{
+				OutString = FString::FromInt(Property->GetSignedIntPropertyValue(InProp.PropertyPtr));
+			}
+		}
+		else if (InProp.Property->IsA<UBoolProperty>())
+		{
+			UBoolProperty* Property = Cast<UBoolProperty>(InProp.Property);
+			if (Property->GetPropertyValue(InProp.PropertyPtr))
+			{
+				OutString = TEXT("True");
+			}
+			else
+			{
+				OutString = TEXT("False");
+			}
+		}
+		else if (InProp.Property->IsA<UNameProperty>())
+		{
+			UNameProperty* Property = Cast<UNameProperty>(InProp.Property);
+			OutString = Property->GetPropertyValue(InProp.PropertyPtr).ToString();
+		}
+		else if (InProp.Property->IsA<UObjectProperty>())
+		{
+			UObjectProperty* Property = Cast<UObjectProperty>(InProp.Property);
+			UObject* Object = Property->GetPropertyValue(InProp.PropertyPtr);
+			OutString = Object->GetName() + TEXT(", type: ") + Object->GetClass()->GetName();
+		}
+		else if (InProp.Property->IsA<UStructProperty>())
+		{
+			UStructProperty* Property = Cast<UStructProperty>(InProp.Property);
+			OutString = Property->GetName() + TEXT(", type: ") + Property->Struct->GetName();
+		}
 		return false;
 	}
+}
+
+FString UGlobalEventSystemBPLibrary::Conv_PropToString(const FGESWildcardProperty& InProp)
+{
+	FString OutString;
+	Conv_PropToStringRef(InProp, OutString);
+	return OutString;
 }
 
 bool UGlobalEventSystemBPLibrary::Conv_PropToName(const FGESWildcardProperty& InProp, FName& OutName)
