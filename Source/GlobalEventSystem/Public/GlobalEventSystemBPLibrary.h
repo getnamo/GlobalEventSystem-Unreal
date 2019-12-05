@@ -80,8 +80,8 @@ class UGlobalEventSystemBPLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, meta = (DisplayName = "To Name (Wildcard Property)", BlueprintAutocast), Category = "Utilities|SocketIO")
 	static bool Conv_PropToName(const FGESWildcardProperty& InProp, FName& OutName);
 
-	UFUNCTION(BlueprintPure, meta = (DisplayName = "To Struct (Wildcard Property)", CustomStructureParam = "OutStruct", BlueprintAutocast), Category = "Utilities|SocketIO")
-	static bool Conv_PropToStruct(const FGESWildcardProperty& InProp, UProperty*& OutStruct);
+	UFUNCTION(BlueprintPure, CustomThunk, meta = (DisplayName = "To Struct (Wildcard Property)", CustomStructureParam = "OutStruct", BlueprintAutocast), Category = "Utilities|SocketIO")
+	static void Conv_PropToStruct(const FGESWildcardProperty& InProp, UProperty*& OutStruct);
 
 	UFUNCTION(BlueprintPure, meta = (DisplayName = "To Object (Wildcard Property)", BlueprintAutocast), Category = "Utilities|SocketIO")
 	static bool Conv_PropToObject(const FGESWildcardProperty& InProp, UObject*& OutObject);
@@ -111,8 +111,32 @@ class UGlobalEventSystemBPLibrary : public UBlueprintFunctionLibrary
 		P_NATIVE_END;
 	}
 
+	DECLARE_FUNCTION(execConv_PropToStruct)
+	{
+		//Stack.MostRecentProperty = nullptr;
+		FGESWildcardProperty InProp;
+		FGESWildcardProperty OutProp;
+		
+		//Determine copy wildcard property variables
+		Stack.StepCompiledIn<UStructProperty>(&InProp);		
+
+		//Copy the out struct property address
+		Stack.Step(Stack.Object, NULL);
+		UProperty* ParameterProp = Cast<UProperty>(Stack.MostRecentProperty);
+		void* PropPtr = Stack.MostRecentPropertyAddress;
+
+		OutProp.Property = ParameterProp;
+		OutProp.PropertyPtr = PropPtr;
+
+		P_FINISH;
+		P_NATIVE_BEGIN;
+		bool bDidCopy = HandlePropToStruct(InProp, OutProp);
+		P_NATIVE_END;
+	}
+
 
 private:
 	static void HandleEmit(const FGESEmitData& EmitData);
+	static bool HandlePropToStruct(const FGESWildcardProperty& InProp, FGESWildcardProperty& FullProp);
 	//todo add support for array type props
 };
