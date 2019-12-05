@@ -2,110 +2,7 @@
 #include "UObject/Object.h"
 #include "UObject/UnrealType.h"
 #include "GESWorldListenerActor.h"
-
-struct FGESEventListener
-{
-	UObject* Receiver;
-	FString FunctionName;
-
-	/** Bound UFunction, valid after calling LinkFunction*/
-	UFunction* Function;
-
-	FGESEventListener() {}
-
-	bool LinkFunction()
-	{
-		Function = Receiver->FindFunction(FName(*FunctionName));
-		return IsValidListener();
-	}
-
-	bool IsValidListener() const
-	{
-		return (Function != nullptr);
-	}
-
-	bool operator ==(FGESEventListener const &Other) {
-		return (Other.Receiver == Receiver) && (Other.FunctionName == FunctionName);
-	}
-};
-
-struct FGESPinnedData
-{
-	UProperty* Property;
-	void* PropertyPtr;
-	TArray<uint8> PropertyData;
-
-	FGESPinnedData()
-	{
-		Property = nullptr;
-		PropertyPtr = nullptr;
-	}
-	void CopyPropertyToPinnedBuffer();
-	void CleanupPinnedData();
-};
-
-struct FGESEvent
-{
-	//If pinned an event will emit the moment you add a listener if it has been already fired once
-	bool bPinned;
-	FGESPinnedData PinnedData;
-
-	FString Domain;
-	FString Event;
-	TArray<FGESEventListener> Listeners;
-	UObject* WorldContext;
-
-	FGESEvent() 
-	{ 
-		PinnedData = FGESPinnedData();
-		WorldContext = nullptr;
-	}
-
-	//todo: add restrictions e.g. must apply interface, 
-	//	should this be a callback to creator of function/domain?
-	//	for refined access?
-};
-
-struct FGESEmitData
-{
-	bool bPinned;
-	FString Domain;
-	FString Event;
-	UProperty* Property;
-	void* PropertyPtr;
-	UObject* WorldContext;
-
-	//if we want a callback or pin emit
-	FGESEventListener* SpecificTarget;
-
-	FGESEmitData()
-	{
-		Property = nullptr;
-		PropertyPtr = nullptr;
-		SpecificTarget = nullptr;
-		WorldContext = nullptr;
-	}
-};
-
-struct FGESDynamicArg
-{
-	void* Arg01;
-};
-
-struct FGESHandlerOptions
-{
-	//can have performance implications, but safer
-	bool bValidateStructTypes;
-
-	//Generally logs when you re-launch a map or delete receiving actors without unbinding
-	bool bLogStaleRemovals;
-
-	FGESHandlerOptions()
-	{
-		bValidateStructTypes = true;
-		bLogStaleRemovals = true;
-	}
-};
+#include "GESDataTypes.h"
 
 class FGESHandler
 {
@@ -164,7 +61,7 @@ public:
 	/**
 	* Update global options
 	*/
-	void SetOptions(const FGESHandlerOptions& InOptions);
+	void SetOptions(const FGESGlobalOptions& InOptions);
 	
 	/** 
 	* Convenience internal Key for domain and event string
@@ -193,7 +90,7 @@ private:
 	TArray<FGESEventListener*> RemovalArray;
 
 	//Toggles
-	FGESHandlerOptions Options;
+	FGESGlobalOptions Options;
 
 	TMap<UWorld*, AGESWorldListenerActor*> WorldMap;
 };

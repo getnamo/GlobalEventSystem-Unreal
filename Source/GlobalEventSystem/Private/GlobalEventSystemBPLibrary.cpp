@@ -27,6 +27,22 @@ void UGlobalEventSystemBPLibrary::GESBindEvent(UObject* WorldContextObject, cons
 	FGESHandler::DefaultHandler()->AddListener(Domain, Event, Listener);
 }
 
+void UGlobalEventSystemBPLibrary::GESBindEventToDelegate(UObject* WorldContextObject, const FGESOnePropertySignature& ReceivingFunction, const FString& Domain /*= TEXT("global.default")*/, const FString& Event /*= TEXT("")*/)
+{
+	UE_LOG(LogTemp, Log, TEXT("GESBindEventToDelegate"));
+
+	FGESEventListener Listener;
+	Listener.Receiver = WorldContextObject;
+	Listener.OnePropertyFunctionDelegate = (FGESOnePropertySignature*)(&ReceivingFunction);
+
+	FGESHandler::DefaultHandler()->AddListener(Domain, Event, Listener);
+}
+
+//void UGlobalEventSystemBPLibrary::GESBindEventToDelegate(UObject* WorldContextObject, const FScriptDelegate& ReceivingFunction, const FString& Domain /*= TEXT("global.default")*/, const FString& Event /*= TEXT("")*/)
+/*{
+	UE_LOG(LogTemp, Log, TEXT("GESBindEventToDelegate"));
+}*/
+
 void UGlobalEventSystemBPLibrary::HandleEmit(const FGESEmitData& EmitData)
 {
 	FGESHandler::DefaultHandler()->EmitEvent(EmitData);
@@ -54,9 +70,6 @@ void UGlobalEventSystemBPLibrary::GESUnpinEvent(UObject* WorldContextObject, con
 
 void UGlobalEventSystemBPLibrary::SetGESOptions(const FGESGlobalOptions& InOptions)
 {
-	FGESHandlerOptions HandlerOptions;
-	HandlerOptions.bLogStaleRemovals = InOptions.bLogStaleRemovals;
-	HandlerOptions.bValidateStructTypes = InOptions.bValidateStructTypes;
-	FGESHandler::DefaultHandler()->SetOptions(HandlerOptions);
+	FGESHandler::DefaultHandler()->SetOptions(InOptions);
 }
 

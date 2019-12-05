@@ -3,7 +3,6 @@
 
 TSharedPtr<FGESHandler> FGESHandler::PrivateDefaultHandler = MakeShareable(new FGESHandler());
 
-
 bool FGESHandler::FirstParamIsCppType(UFunction* Function, const FString& TypeString)
 {
 	TArray<UProperty*> Properties;
@@ -243,6 +242,16 @@ void FGESHandler::EmitToListenersWithData(const FGESEmitData& EmitData, TFunctio
 		//Check validity of receiver and function and call the function
 		if (Listener.Receiver->IsValidLowLevelFast())
 		{
+			if (Listener.OnePropertyFunctionDelegate)
+			{
+				//this listener is handled by wildcard event delegate instead
+				FGESPropertyWrapper Wrapper;
+				Wrapper.Property = EmitData.Property;
+				Wrapper.PropertyPtr = EmitData.PropertyPtr;
+				Listener.OnePropertyFunctionDelegate->ExecuteIfBound(Wrapper);
+				return;
+			}
+
 			UFunction* BPFunction = Listener.Receiver->FindFunction(FName(*Listener.FunctionName));
 			if (BPFunction != nullptr)
 			{
@@ -267,6 +276,16 @@ void FGESHandler::EmitToListenersWithData(const FGESEmitData& EmitData, TFunctio
 			//Check validity of receiver and function and call the function
 			if (Listener.Receiver->IsValidLowLevelFast())
 			{
+				if (Listener.OnePropertyFunctionDelegate)
+				{
+					//this listener is handled by wildcard event delegate instead
+					FGESPropertyWrapper Wrapper;
+					Wrapper.Property = EmitData.Property;
+					Wrapper.PropertyPtr = EmitData.PropertyPtr;
+					Listener.OnePropertyFunctionDelegate->ExecuteIfBound(Wrapper);
+					return;
+				}
+
 				UFunction* BPFunction = Listener.Receiver->FindFunction(FName(*Listener.FunctionName));
 				if (BPFunction != nullptr)
 				{
@@ -426,6 +445,15 @@ bool FGESHandler::EmitEvent(const FGESEmitData& EmitData)
 	{
 		EmitToListenersWithData(EmitData, [&EmitData](const FGESEventListener& Listener)
 		{
+			//If the listener bound it to a wildcard event delegate, emit with nullptr
+			if (Listener.OnePropertyFunctionDelegate)
+			{
+				FGESPropertyWrapper Wrapper;
+				Wrapper.Property = EmitData.Property;
+				Wrapper.PropertyPtr = EmitData.PropertyPtr;
+				Listener.OnePropertyFunctionDelegate->ExecuteIfBound(Wrapper);
+				return;
+			}
 			TFieldIterator<UProperty> Iterator(Listener.Function);
 
 			TArray<UProperty*> Properties;
@@ -505,7 +533,7 @@ bool FGESHandler::EmitEvent(const FGESEmitData& EmitData)
 	return false;
 }
 
-void FGESHandler::SetOptions(const FGESHandlerOptions& InOptions)
+void FGESHandler::SetOptions(const FGESGlobalOptions& InOptions)
 {
 	Options = InOptions;
 }
@@ -531,27 +559,4 @@ FGESHandler::~FGESHandler()
 		}
 	}*/
 	EventMap.Empty();
-}
-
-void FGESPinnedData::CopyPropertyToPinnedBuffer()
-{
-	//Copy this property data to temp
-	Property->AddToRoot();
-	int32 Num = Property->GetSize();
-	PropertyData.SetNumUninitialized(Num);
-	FMemory::Memcpy(PropertyData.GetData(), PropertyPtr, Num);
-
-	//reset pointer to new copy
-	PropertyPtr = PropertyData.GetData();
-}
-
-void FGESPinnedData::CleanupPinnedData()
-{
-	if (Property && Property->IsValidLowLevelFast())
-	{
-		Property->RemoveFromRoot();
-	}
-	PropertyData.Empty();
-	Property = nullptr;
-	PropertyPtr = nullptr;
 }

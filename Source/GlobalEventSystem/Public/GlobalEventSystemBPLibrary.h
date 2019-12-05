@@ -6,27 +6,6 @@
 #include "GESHandler.h"
 #include "GlobalEventSystemBPLibrary.generated.h"
 
-
-USTRUCT(BlueprintType)
-struct FGESGlobalOptions
-{
-	GENERATED_USTRUCT_BODY()
-
-	/** Whether to ensure structs are exactly the same. Turn off for small performance boost. Default true.*/
-	UPROPERTY(BlueprintReadWrite, Category = "GES Global Options")
-	bool bValidateStructTypes;
-
-	/** Will output logs for stale events and listeners that get removed. . Default true.*/
-	UPROPERTY(BlueprintReadWrite, Category = "GES Global Options")
-	bool bLogStaleRemovals;
-
-	FGESGlobalOptions()
-	{
-		bValidateStructTypes = true;
-		bLogStaleRemovals = true;
-	}
-};
-
 /* 
 * Core Global Event System functions. Call anywhere.
 */
@@ -46,6 +25,12 @@ class UGlobalEventSystemBPLibrary : public UBlueprintFunctionLibrary
 	*/
 	UFUNCTION(BlueprintCallable, meta = (Keywords = "ges create listen", WorldContext = "WorldContextObject"), Category = "GlobalEventSystem")
 	static void GESBindEvent(UObject* WorldContextObject, const FString& Domain = TEXT("global.default"), const FString& Event = TEXT(""), const FString& ReceivingFunction = TEXT(""));
+
+	/**
+	* Bind an event delegate to GES event. Use blueprint utility to decode UProperty.
+	*/
+	UFUNCTION(BlueprintCallable, meta = (Keywords = "ges create listen", WorldContext = "WorldContextObject"), Category = "GlobalEventSystem")
+	static void GESBindEventToDelegate(UObject* WorldContextObject, const FGESOnePropertySignature& ReceivingFunction, const FString& Domain = TEXT("global.default"), const FString& Event = TEXT(""));
 
 	/** 
 	* Emit desired event with data. Data can be any property (just not UObjects at this time). 
