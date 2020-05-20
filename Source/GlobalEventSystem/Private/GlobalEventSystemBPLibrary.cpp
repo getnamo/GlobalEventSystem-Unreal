@@ -47,7 +47,7 @@ void UGlobalEventSystemBPLibrary::HandleEmit(const FGESEmitData& EmitData)
 	FGESHandler::DefaultHandler()->EmitEvent(EmitData);
 }
 
-void UGlobalEventSystemBPLibrary::GESEmitEventOneParam(UObject* WorldContextObject, bool bPinned /*= false*/, const FString& Domain /*= TEXT("global.default")*/, const FString& Event /*= TEXT("")*/, UProperty* ParameterData /*= nullptr*/)
+void UGlobalEventSystemBPLibrary::GESEmitEventOneParam(UObject* WorldContextObject, TFieldPath<FProperty> ParameterData, bool bPinned /*= false*/, const FString& Domain /*= TEXT("global.default")*/, const FString& Event /*= TEXT("")*/)
 {
 	//this never gets called due to custom thunk
 }
@@ -74,9 +74,9 @@ void UGlobalEventSystemBPLibrary::SetGESOptions(const FGESGlobalOptions& InOptio
 
 bool UGlobalEventSystemBPLibrary::Conv_PropToInt(const FGESWildcardProperty& InProp, int32& OutInt)
 {
-	if (InProp.Property->IsA<UNumericProperty>())
+	if (InProp.Property->IsA<FNumericProperty>())
 	{
-		UNumericProperty* Property = Cast<UNumericProperty>(InProp.Property);
+		FNumericProperty* Property = CastField<FNumericProperty>(InProp.Property.Get());
 		if (Property->IsFloatingPoint())
 		{
 			OutInt = Property->GetSignedIntPropertyValue(InProp.PropertyPtr);
@@ -98,9 +98,9 @@ bool UGlobalEventSystemBPLibrary::Conv_PropToInt(const FGESWildcardProperty& InP
 
 bool UGlobalEventSystemBPLibrary::Conv_PropToFloat(const FGESWildcardProperty& InProp, float& OutFloat)
 {
-	if (InProp.Property->IsA<UNumericProperty>())
+	if (InProp.Property->IsA<FNumericProperty>())
 	{
-		UNumericProperty* Property = Cast<UNumericProperty>(InProp.Property);
+		FNumericProperty* Property = CastField<FNumericProperty>(InProp.Property.Get());
 		if (Property->IsFloatingPoint())
 		{
 			OutFloat = Property->GetFloatingPointPropertyValue(InProp.PropertyPtr);
@@ -122,9 +122,9 @@ bool UGlobalEventSystemBPLibrary::Conv_PropToFloat(const FGESWildcardProperty& I
 
 bool UGlobalEventSystemBPLibrary::Conv_PropToBool(const FGESWildcardProperty& InProp, bool& OutBool)
 {
-	if (InProp.Property->IsA<UBoolProperty>())
+	if (InProp.Property->IsA<FBoolProperty>())
 	{
-		UBoolProperty* Property = Cast<UBoolProperty>(InProp.Property);
+		FBoolProperty* Property = CastField<FBoolProperty>(InProp.Property.Get());
 		OutBool = Property->GetPropertyValue(InProp.PropertyPtr);
 		return true;
 	}
@@ -137,9 +137,9 @@ bool UGlobalEventSystemBPLibrary::Conv_PropToBool(const FGESWildcardProperty& In
 
 bool UGlobalEventSystemBPLibrary::Conv_PropToStringRef(const FGESWildcardProperty& InProp, FString& OutString)
 {
-	if (InProp.Property->IsA<UStrProperty>())
+	if (InProp.Property->IsA<FStrProperty>())
 	{
-		UStrProperty* Property = Cast<UStrProperty>(InProp.Property);
+		FStrProperty* Property = CastField<FStrProperty>(InProp.Property.Get());
 		OutString = Property->GetPropertyValue(InProp.PropertyPtr);
 		return true;
 	}
@@ -148,9 +148,9 @@ bool UGlobalEventSystemBPLibrary::Conv_PropToStringRef(const FGESWildcardPropert
 		UE_LOG(LogTemp, Warning, TEXT("UGlobalEventSystemBPLibrary::Conv_PropToString %s is not an FString, attempted best conversion for display purposes."), *InProp.Property->GetName());
 
 		//Convert logic
-		if (InProp.Property->IsA<UNumericProperty>())
+		if (InProp.Property->IsA<FNumericProperty>())
 		{
-			UNumericProperty* Property = Cast<UNumericProperty>(InProp.Property);
+			FNumericProperty* Property = CastField<FNumericProperty>(InProp.Property.Get());
 			if (Property->IsFloatingPoint())
 			{
 				OutString = FString::SanitizeFloat(Property->GetFloatingPointPropertyValue(InProp.PropertyPtr));
@@ -160,9 +160,9 @@ bool UGlobalEventSystemBPLibrary::Conv_PropToStringRef(const FGESWildcardPropert
 				OutString = FString::FromInt(Property->GetSignedIntPropertyValue(InProp.PropertyPtr));
 			}
 		}
-		else if (InProp.Property->IsA<UBoolProperty>())
+		else if (InProp.Property->IsA<FBoolProperty>())
 		{
-			UBoolProperty* Property = Cast<UBoolProperty>(InProp.Property);
+			FBoolProperty* Property = CastField<FBoolProperty>(InProp.Property.Get());
 			if (Property->GetPropertyValue(InProp.PropertyPtr))
 			{
 				OutString = TEXT("True");
@@ -172,20 +172,20 @@ bool UGlobalEventSystemBPLibrary::Conv_PropToStringRef(const FGESWildcardPropert
 				OutString = TEXT("False");
 			}
 		}
-		else if (InProp.Property->IsA<UNameProperty>())
+		else if (InProp.Property->IsA<FNameProperty>())
 		{
-			UNameProperty* Property = Cast<UNameProperty>(InProp.Property);
+			FNameProperty* Property = CastField <FNameProperty>(InProp.Property.Get());
 			OutString = Property->GetPropertyValue(InProp.PropertyPtr).ToString();
 		}
-		else if (InProp.Property->IsA<UObjectProperty>())
+		else if (InProp.Property->IsA<FObjectProperty>())
 		{
-			UObjectProperty* Property = Cast<UObjectProperty>(InProp.Property);
+			FObjectProperty* Property = CastField<FObjectProperty>(InProp.Property.Get());
 			UObject* Object = Property->GetPropertyValue(InProp.PropertyPtr);
 			OutString = Object->GetName() + TEXT(", type: ") + Object->GetClass()->GetName();
 		}
-		else if (InProp.Property->IsA<UStructProperty>())
+		else if (InProp.Property->IsA<FStructProperty>())
 		{
-			UStructProperty* Property = Cast<UStructProperty>(InProp.Property);
+			FStructProperty* Property = CastField<FStructProperty>(InProp.Property.Get());
 			OutString = Property->GetName() + TEXT(", type: ") + Property->Struct->GetName();
 		}
 		return false;
@@ -201,9 +201,9 @@ FString UGlobalEventSystemBPLibrary::Conv_PropToString(const FGESWildcardPropert
 
 bool UGlobalEventSystemBPLibrary::Conv_PropToName(const FGESWildcardProperty& InProp, FName& OutName)
 {
-	if (InProp.Property->IsA<UNameProperty>())
+	if (InProp.Property->IsA<FNameProperty>())
 	{
-		UNameProperty* Property = Cast<UNameProperty>(InProp.Property);
+		FNameProperty* Property = CastField<FNameProperty>(InProp.Property.Get());
 		OutName = Property->GetPropertyValue(InProp.PropertyPtr);
 		return true;
 	}
@@ -214,7 +214,7 @@ bool UGlobalEventSystemBPLibrary::Conv_PropToName(const FGESWildcardProperty& In
 	}
 }
 
-bool UGlobalEventSystemBPLibrary::Conv_PropToStruct(const FGESWildcardProperty& InProp, UProperty*& OutStruct)
+bool UGlobalEventSystemBPLibrary::Conv_PropToStruct(const FGESWildcardProperty& InProp, TFieldPath<FProperty>& OutStruct)
 {
 	//doesn't get called due to custom thunk
 	return false;
@@ -222,10 +222,10 @@ bool UGlobalEventSystemBPLibrary::Conv_PropToStruct(const FGESWildcardProperty& 
 
 bool UGlobalEventSystemBPLibrary::HandlePropToStruct(const FGESWildcardProperty& InProp, FGESWildcardProperty& OutProp)
 {
-	if (InProp.Property->IsA<UStructProperty>() && OutProp.Property->IsA<UStructProperty>())
+	if (InProp.Property->IsA<FStructProperty>() && OutProp.Property->IsA<FStructProperty>())
 	{
-		UStructProperty* InStructProp = Cast<UStructProperty>(InProp.Property);
-		UStructProperty* OutStructProp = Cast<UStructProperty>(OutProp.Property);
+		FStructProperty* InStructProp = CastField<FStructProperty>(InProp.Property.Get());
+		FStructProperty* OutStructProp = CastField<FStructProperty>(OutProp.Property.Get());
 
 		OutStructProp->CopyCompleteValue(OutProp.PropertyPtr, InProp.PropertyPtr);
 		return true;
@@ -238,9 +238,9 @@ bool UGlobalEventSystemBPLibrary::HandlePropToStruct(const FGESWildcardProperty&
 
 bool UGlobalEventSystemBPLibrary::Conv_PropToObject(const FGESWildcardProperty& InProp, UObject*& OutObject)
 {
-	if (InProp.Property->IsA<UObjectProperty>())
+	if (InProp.Property->IsA<FObjectProperty>())
 	{
-		UObjectProperty* Property = Cast<UObjectProperty>(InProp.Property);
+		FObjectProperty* Property = CastField<FObjectProperty>(InProp.Property.Get());
 		OutObject = Property->GetPropertyValue(InProp.PropertyPtr);
 		return true;
 	}

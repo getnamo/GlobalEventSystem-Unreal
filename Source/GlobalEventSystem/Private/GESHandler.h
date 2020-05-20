@@ -76,14 +76,14 @@ private:
 
 	//can check function signature vs e.g. FString
 	static bool FirstParamIsCppType(UFunction* Function, const FString& TypeString);
-	static bool FirstParamIsSubclassOf(UFunction* Function, UClass* ClassType);
+	static bool FirstParamIsSubclassOf(UFunction* Function, FFieldClass* ClassType);
 	static FString ListenerLogString(const FGESEventListener& Listener);
 	static FString EventLogString(const FGESEvent& Event);
 	static FString EmitEventLogString(const FGESEmitData& EmitData);
-	static void FunctionParameters(UFunction* Function, TArray<UProperty*>& OutParamProperties);
+	static void FunctionParameters(UFunction* Function, TArray<FProperty*>& OutParamProperties);
 
 	//this function logs warnings otherwise
-	static bool FunctionHasValidParams(UFunction* Function, UClass* ClassType, const FGESEmitData& EmitData, const FGESEventListener& Listener);
+	static bool FunctionHasValidParams(UFunction* Function, FFieldClass* ClassType, const FGESEmitData& EmitData, const FGESEventListener& Listener);
 
 	//Key == TargetDomain.TargetFunction
 	TMap<FString, FGESEvent> EventMap;

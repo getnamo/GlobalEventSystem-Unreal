@@ -38,7 +38,7 @@ class UGlobalEventSystemBPLibrary : public UBlueprintFunctionLibrary
 	* emitted.
 	*/
 	UFUNCTION(BlueprintCallable, CustomThunk, Category = "GlobalEventSystem", meta = (CustomStructureParam = "ParameterData", WorldContext = "WorldContextObject"))
-	static void GESEmitEventOneParam(UObject* WorldContextObject, bool bPinned = false, const FString& Domain = TEXT("global.default"), const FString& Event = TEXT(""), UProperty* ParameterData = nullptr);
+	static void GESEmitEventOneParam(UObject* WorldContextObject, TFieldPath<FProperty> ParameterData, bool bPinned = false, const FString& Domain = TEXT("global.default"), const FString& Event = TEXT(""));
 
 	/** 
 	* Just emits the event with no additional data
@@ -81,7 +81,7 @@ class UGlobalEventSystemBPLibrary : public UBlueprintFunctionLibrary
 	static bool Conv_PropToName(const FGESWildcardProperty& InProp, FName& OutName);
 
 	UFUNCTION(BlueprintPure, CustomThunk, meta = (DisplayName = "To Struct (Wildcard Property)", CustomStructureParam = "OutStruct", BlueprintAutocast), Category = "Utilities|SocketIO")
-	static bool Conv_PropToStruct(const FGESWildcardProperty& InProp, UProperty*& OutStruct);
+	static bool Conv_PropToStruct(const FGESWildcardProperty& InProp, TFieldPath<FProperty>& OutStruct);
 
 	UFUNCTION(BlueprintPure, meta = (DisplayName = "To Object (Wildcard Property)", BlueprintAutocast), Category = "Utilities|SocketIO")
 	static bool Conv_PropToObject(const FGESWildcardProperty& InProp, UObject*& OutObject);
@@ -92,18 +92,19 @@ class UGlobalEventSystemBPLibrary : public UBlueprintFunctionLibrary
 		Stack.MostRecentProperty = nullptr;
 		FGESEmitData EmitData;
 
-		Stack.StepCompiledIn<UObjectProperty>(&EmitData.WorldContext);
-		Stack.StepCompiledIn<UBoolProperty>(&EmitData.bPinned);
-		Stack.StepCompiledIn<UStrProperty>(&EmitData.Domain);
-		Stack.StepCompiledIn<UStrProperty>(&EmitData.Event);
+		Stack.StepCompiledIn<FObjectProperty>(&EmitData.WorldContext);
 
 		//Determine wildcard property
 		Stack.Step(Stack.Object, NULL);
-		UProperty* ParameterProp = Cast<UProperty>(Stack.MostRecentProperty);
+		FProperty* ParameterProp = CastField<FProperty>(Stack.MostRecentProperty);
 		void* PropPtr = Stack.MostRecentPropertyAddress;
 
 		EmitData.Property = ParameterProp;
 		EmitData.PropertyPtr = PropPtr;
+
+		Stack.StepCompiledIn<FBoolProperty>(&EmitData.bPinned);
+		Stack.StepCompiledIn<FStrProperty>(&EmitData.Domain);
+		Stack.StepCompiledIn<FStrProperty>(&EmitData.Event);
 
 		P_FINISH;
 		P_NATIVE_BEGIN;
@@ -118,11 +119,11 @@ class UGlobalEventSystemBPLibrary : public UBlueprintFunctionLibrary
 		FGESWildcardProperty OutProp;
 		
 		//Determine copy wildcard property variables
-		Stack.StepCompiledIn<UStructProperty>(&InProp);		
+		Stack.StepCompiledIn<FStructProperty>(&InProp);		
 
 		//Copy the out struct property address
 		Stack.Step(Stack.Object, NULL);
-		UProperty* ParameterProp = Cast<UProperty>(Stack.MostRecentProperty);
+		FProperty* ParameterProp = CastField<FProperty>(Stack.MostRecentProperty);
 		void* PropPtr = Stack.MostRecentPropertyAddress;
 
 		OutProp.Property = ParameterProp;

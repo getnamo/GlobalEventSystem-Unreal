@@ -5,7 +5,7 @@ TSharedPtr<FGESHandler> FGESHandler::PrivateDefaultHandler = MakeShareable(new F
 
 bool FGESHandler::FirstParamIsCppType(UFunction* Function, const FString& TypeString)
 {
-	TArray<UProperty*> Properties;
+	TArray<FProperty*> Properties;
 	FunctionParameters(Function, Properties);
 	if (Properties.Num() == 0)
 	{
@@ -16,9 +16,9 @@ bool FGESHandler::FirstParamIsCppType(UFunction* Function, const FString& TypeSt
 	return (FirstParam == TypeString);
 }
 
-bool FGESHandler::FirstParamIsSubclassOf(UFunction* Function, UClass* ClassType)
+bool FGESHandler::FirstParamIsSubclassOf(UFunction* Function, FFieldClass* ClassType)
 {
-	TArray<UProperty*> Properties;
+	TArray<FProperty*> Properties;
 	FunctionParameters(Function, Properties);
 	if (Properties.Num() == 0)
 	{
@@ -42,19 +42,19 @@ FString FGESHandler::EmitEventLogString(const FGESEmitData& EmitData)
 	return EmitData.Domain + TEXT(".") + EmitData.Event;
 }
 
-void FGESHandler::FunctionParameters(UFunction* Function, TArray<UProperty*>& OutParamProperties)
+void FGESHandler::FunctionParameters(UFunction* Function, TArray<FProperty*>& OutParamProperties)
 {
-	TFieldIterator<UProperty> Iterator(Function);
+	TFieldIterator<FProperty> Iterator(Function);
 
 	while (Iterator && (Iterator->PropertyFlags & CPF_Parm))
 	{
-		UProperty* Prop = *Iterator;
+		FProperty* Prop = *Iterator;
 		OutParamProperties.Add(Prop);
 		++Iterator;
 	}
 }
 
-bool FGESHandler::FunctionHasValidParams(UFunction* Function, UClass* ClassType, const FGESEmitData& EmitData, const FGESEventListener& Listener)
+bool FGESHandler::FunctionHasValidParams(UFunction* Function, FFieldClass* ClassType, const FGESEmitData& EmitData, const FGESEventListener& Listener)
 {
 	if (FirstParamIsSubclassOf(Function, ClassType))
 	{
@@ -110,7 +110,7 @@ void FGESHandler::UnpinEvent(const FString& Domain, const FString& EventName)
 	{
 		FGESEvent& Event = EventMap[KeyString];
 		Event.bPinned = false;
-		Event.PinnedData.Property->RemoveFromRoot();
+		//Event.PinnedData.Property->RemoveFromRoot();
 		//Event.PinnedData.PropertyData.Empty();  not sure if safe to delete instead of rebuilding on next pin
 	}
 }
@@ -325,15 +325,15 @@ void FGESHandler::EmitEvent(const FGESEmitData& EmitData, UStruct* Struct, void*
 	bool bValidateStructs = Options.bValidateStructTypes;
 	EmitToListenersWithData(EmitData, [&EmitData, Struct, StructPtr, bValidateStructs](const FGESEventListener& Listener)
 	{
-		if (FunctionHasValidParams(Listener.Function, UStructProperty::StaticClass(), EmitData, Listener))
+		if (FunctionHasValidParams(Listener.Function, FStructProperty::StaticClass(), EmitData, Listener))
 		{
 			if (bValidateStructs)
 			{
 				//For structs we can have different mismatching structs at this point check class types
 				//optimization note: unroll the above function for structs to avoid double param lookup
-				TArray<UProperty*> Properties;
+				TArray<FProperty*> Properties;
 				FunctionParameters(Listener.Function, Properties);
-				UStructProperty* StructProperty = Cast<UStructProperty>(Properties[0]);
+				FStructProperty* StructProperty = CastField<FStructProperty>(Properties[0]);
 				if (StructProperty->Struct == Struct)
 				{
 					Listener.Receiver->ProcessEvent(Listener.Function, StructPtr);
@@ -360,7 +360,7 @@ void FGESHandler::EmitEvent(const FGESEmitData& EmitData, const FString& ParamDa
 	FString MutableParamString = ParamData;
 	EmitToListenersWithData(EmitData, [&EmitData, &MutableParamString](const FGESEventListener& Listener)
 	{
-		if (FunctionHasValidParams(Listener.Function, UStrProperty::StaticClass(), EmitData, Listener))
+		if (FunctionHasValidParams(Listener.Function, FStrProperty::StaticClass(), EmitData, Listener))
 		{
 			Listener.Receiver->ProcessEvent(Listener.Function, &MutableParamString);
 		}
@@ -371,7 +371,7 @@ void FGESHandler::EmitEvent(const FGESEmitData& EmitData, UObject* ParamData)
 {
 	EmitToListenersWithData(EmitData, [&EmitData, ParamData](const FGESEventListener& Listener)
 	{
-		if (FunctionHasValidParams(Listener.Function, UObjectProperty::StaticClass(), EmitData, Listener))
+		if (FunctionHasValidParams(Listener.Function, FObjectProperty::StaticClass(), EmitData, Listener))
 		{
 			FGESDynamicArg ParamWrapper;
 			ParamWrapper.Arg01 = ParamData;
@@ -384,7 +384,7 @@ void FGESHandler::EmitEvent(const FGESEmitData& EmitData, float ParamData)
 {
 	EmitToListenersWithData(EmitData, [&EmitData, &ParamData](const FGESEventListener& Listener)
 	{
-		if (FunctionHasValidParams(Listener.Function, UNumericProperty::StaticClass(), EmitData, Listener))
+		if (FunctionHasValidParams(Listener.Function, FNumericProperty::StaticClass(), EmitData, Listener))
 		{
 			Listener.Receiver->ProcessEvent(Listener.Function, &ParamData);
 		}
@@ -395,7 +395,7 @@ void FGESHandler::EmitEvent(const FGESEmitData& EmitData, int32 ParamData)
 {
 	EmitToListenersWithData(EmitData, [&EmitData, &ParamData](const FGESEventListener& Listener)
 	{
-		if (FunctionHasValidParams(Listener.Function, UNumericProperty::StaticClass(), EmitData, Listener))
+		if (FunctionHasValidParams(Listener.Function, FNumericProperty::StaticClass(), EmitData, Listener))
 		{
 			Listener.Receiver->ProcessEvent(Listener.Function, &ParamData);
 		}
@@ -406,7 +406,7 @@ void FGESHandler::EmitEvent(const FGESEmitData& EmitData, bool ParamData)
 {
 	EmitToListenersWithData(EmitData, [&EmitData, &ParamData](const FGESEventListener& Listener)
 	{
-		if (FunctionHasValidParams(Listener.Function, UBoolProperty::StaticClass(), EmitData, Listener))
+		if (FunctionHasValidParams(Listener.Function, FBoolProperty::StaticClass(), EmitData, Listener))
 		{
 			Listener.Receiver->ProcessEvent(Listener.Function, &ParamData);
 		}
@@ -418,7 +418,7 @@ void FGESHandler::EmitEvent(const FGESEmitData& EmitData, const FName& ParamData
 	FName MutableName = ParamData;
 	EmitToListenersWithData(EmitData, [&EmitData, &ParamData, &MutableName](const FGESEventListener& Listener)
 	{
-		if (FunctionHasValidParams(Listener.Function, UNameProperty::StaticClass(), EmitData, Listener))
+		if (FunctionHasValidParams(Listener.Function, FNameProperty::StaticClass(), EmitData, Listener))
 		{
 			Listener.Receiver->ProcessEvent(Listener.Function, &MutableName);
 		}
@@ -437,7 +437,7 @@ bool FGESHandler::EmitEvent(const FGESEmitData& EmitData)
 		}
 		return false;
 	}
-	UProperty* ParameterProp = EmitData.Property;
+	FProperty* ParameterProp = EmitData.Property;
 	void* PropPtr = EmitData.PropertyPtr;
 
 	//no params specified
@@ -454,12 +454,12 @@ bool FGESHandler::EmitEvent(const FGESEmitData& EmitData)
 				Listener.OnePropertyFunctionDelegate.ExecuteIfBound(Wrapper);
 				return;
 			}
-			TFieldIterator<UProperty> Iterator(Listener.Function);
+			TFieldIterator<FProperty> Iterator(Listener.Function);
 
-			TArray<UProperty*> Properties;
+			TArray<FProperty*> Properties;
 			while (Iterator && (Iterator->PropertyFlags & CPF_Parm))
 			{
-				UProperty* Prop = *Iterator;
+				FProperty* Prop = *Iterator;
 				Properties.Add(Prop);
 				++Iterator;
 			}
@@ -475,29 +475,29 @@ bool FGESHandler::EmitEvent(const FGESEmitData& EmitData)
 			}
 		});
 	}
-	else if (ParameterProp->IsA<UStructProperty>())
+	else if (ParameterProp->IsA<FStructProperty>())
 	{
-		UStructProperty* StructProperty = ExactCast<UStructProperty>(ParameterProp);
+		FStructProperty* StructProperty = CastField<FStructProperty>(ParameterProp);
 		EmitEvent(EmitData, StructProperty->Struct, PropPtr);
 		return true;
 	}
-	else if (ParameterProp->IsA<UStrProperty>())
+	else if (ParameterProp->IsA<FStrProperty>())
 	{
-		UStrProperty* StrProperty = Cast<UStrProperty>(ParameterProp);
+		FStrProperty* StrProperty = CastField<FStrProperty>(ParameterProp);
 		FString Data = StrProperty->GetPropertyValue(PropPtr);
 		EmitEvent(EmitData, Data);
 		return true;
 	}
-	else if (ParameterProp->IsA<UObjectProperty>())
+	else if (ParameterProp->IsA<FObjectProperty>())
 	{
-		UObjectProperty* ObjectProperty = Cast<UObjectProperty>(ParameterProp);
+		FObjectProperty* ObjectProperty = CastField<FObjectProperty>(ParameterProp);
 		UObject* Data = ObjectProperty->GetPropertyValue(PropPtr);
 		EmitEvent(EmitData, Data);
 		return true;
 	}
-	else if (ParameterProp->IsA<UNumericProperty>())
+	else if (ParameterProp->IsA<FNumericProperty>())
 	{
-		UNumericProperty* NumericProperty = Cast<UNumericProperty>(ParameterProp);
+		FNumericProperty* NumericProperty = CastField<FNumericProperty>(ParameterProp);
 		if (NumericProperty->IsFloatingPoint())
 		{
 			double Data = NumericProperty->GetFloatingPointPropertyValue(PropPtr);
@@ -511,16 +511,16 @@ bool FGESHandler::EmitEvent(const FGESEmitData& EmitData)
 			return true;
 		}
 	}
-	else if (ParameterProp->IsA<UBoolProperty>())
+	else if (ParameterProp->IsA<FBoolProperty>())
 	{
-		UBoolProperty* BoolProperty = Cast<UBoolProperty>(ParameterProp);
+		FBoolProperty* BoolProperty = CastField<FBoolProperty>(ParameterProp);
 		bool Data = BoolProperty->GetPropertyValue(PropPtr);
 		EmitEvent(EmitData, Data);
 		return true;
 	}
-	else if (ParameterProp->IsA<UNameProperty>())
+	else if (ParameterProp->IsA<FNameProperty>())
 	{
-		UNameProperty* NameProperty = Cast<UNameProperty>(ParameterProp);
+		FNameProperty* NameProperty = CastField<FNameProperty>(ParameterProp);
 		FName Data = NameProperty->GetPropertyValue(PropPtr);
 		EmitEvent(EmitData, Data);
 		return true;

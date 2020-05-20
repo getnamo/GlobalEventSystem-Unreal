@@ -29,7 +29,7 @@ struct FGESWildcardProperty
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(BlueprintReadOnly, Category = "GES Global Options")
-	UProperty* Property;
+	TFieldPath<FProperty> Property;
 
 	void* PropertyPtr;
 
@@ -75,7 +75,7 @@ struct FGESEventListener
 
 struct FGESPinnedData
 {
-	UProperty* Property;
+	FProperty* Property;
 	void* PropertyPtr;
 	TArray<uint8> PropertyData;
 
@@ -115,7 +115,7 @@ struct FGESEmitData
 	bool bPinned;
 	FString Domain;
 	FString Event;
-	UProperty* Property;
+	FProperty* Property;
 	void* PropertyPtr;
 	UObject* WorldContext;
 
