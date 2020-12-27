@@ -1,5 +1,5 @@
 # global-event-system-ue4
-A loosely coupled internal global event system (GES) plugin for the Unreal Engine. Aims to solve cross-map and cross-blueprint communication for reliable and inferable event flow.
+A loosely coupled internal global event system (GES) plugin for the Unreal Engine. Aims to solve cross-map and cross-blueprint communication for reliable and inferable event flow. Should enable using a publisher observer pattern.
 
 [![GitHub release](https://img.shields.io/github/release/getnamo/global-event-system-ue4.svg)](https://github.com/getnamo/global-event-system-ue4/releases)
 [![Github All Releases](https://img.shields.io/github/downloads/getnamo/global-event-system-ue4/total.svg)](https://github.com/getnamo/global-event-system-ue4/releases)
