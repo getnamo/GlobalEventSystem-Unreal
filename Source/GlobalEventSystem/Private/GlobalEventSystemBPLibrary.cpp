@@ -64,11 +64,6 @@ void UGlobalEventSystemBPLibrary::GESBindEventToWildcardDelegate(UObject* WorldC
 	FGESHandler::DefaultHandler()->AddListener(Domain, Event, Listener);
 }
 
-//void UGlobalEventSystemBPLibrary::GESBindEventToDelegate(UObject* WorldContextObject, const FScriptDelegate& ReceivingFunction, const FString& Domain /*= TEXT("global.default")*/, const FString& Event /*= TEXT("")*/)
-/*{
-	UE_LOG(LogTemp, Log, TEXT("GESBindEventToDelegate"));
-}*/
-
 void UGlobalEventSystemBPLibrary::HandleEmit(const FGESEmitData& EmitData)
 {
 	FGESHandler::DefaultHandler()->EmitEvent(EmitData);
