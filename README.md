@@ -23,7 +23,7 @@ There are globally available functions that you can use to emit and bind events.
 
 Each emit is a multi-cast to all valid bound receivers. If the parameters don't match you'll be warned in the log with fairly verbose messages while emitting to all other valid targets. 
 
-Consider optionally attaching interfaces to your receivers to keep message types structured.
+Consider optionally using and extending GESReceiver components or attaching interfaces to your receiving function owners to keep messaging organized.
 
 ### Emit Event
 
@@ -87,7 +87,7 @@ and in the other actor you could bind to that event to do something with that in
 
 ![delayed bind](https://i.imgur.com/UfQYsJa.png)
 
-This is the case where pinning the event would help as now when the receiving actor binds to the event, it will auto-matically receive the last emit even though it was called after the event was emitted. From a developer perspective you can now just handle the receiving logic and not worry about whether you need to add delays or loop through all actors in the map. By arranging your events to signal selectively states and muxing those states you can ensure that the order of your events remains predictable; only start x when part y and z in the map have happened.
+This is the case where pinning the event would help as now when the receiving actor binds to the event, it will automatically receive the last emit even though it was called after the event was emitted. From a developer perspective you can now just handle the receiving logic and not worry about whether you need to add delays or loop through all actors in the map. By arranging your events to signal selectively states and muxing those states you can ensure that the order of your events remains predictable; only start x when part y and z in the map have happened.
 
 ### Flow muxing and loose coupling
 
@@ -102,7 +102,7 @@ Blueprints which would listen to the SAReady event, don't even have to care wher
 
 - If your objects have a tight coupling or it's easily accessible in a tree hierarchy pattern I would use standard methods instead of GES.
 
-- Background threads. Current version is not thread safe.
+- Background threads. Current version is not thread safe and should be called only in your game thread.
 
 ## Possible Improvements
 See https://github.com/getnamo/global-event-system-ue4/issues for latest.
