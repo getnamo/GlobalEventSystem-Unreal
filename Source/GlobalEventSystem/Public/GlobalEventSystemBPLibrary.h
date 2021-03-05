@@ -10,7 +10,7 @@
 * Core Global Event System functions. Call anywhere.
 */
 UCLASS()
-class UGlobalEventSystemBPLibrary : public UBlueprintFunctionLibrary
+class GLOBALEVENTSYSTEM_API UGlobalEventSystemBPLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()
 

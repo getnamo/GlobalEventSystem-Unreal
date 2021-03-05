@@ -4,7 +4,11 @@
 #include "GESWorldListenerActor.h"
 #include "GESDataTypes.h"
 
-class FGESHandler
+/** 
+GESHandler Class usable in C++ with care. Private API may be a bit too exposed atm.
+*/
+
+class GLOBALEVENTSYSTEM_API FGESHandler
 {
 public:
 

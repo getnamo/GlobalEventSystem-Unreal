@@ -1,7 +1,7 @@
 {
 	"FileVersion": 3,
 	"Version": 1,
-	"VersionName": "0.6.1",
+	"VersionName": "0.6.2",
 	"FriendlyName": "GlobalEventSystem",
 	"Description": "Loosely coupled internal event system.",
 	"Category": "Utility",
