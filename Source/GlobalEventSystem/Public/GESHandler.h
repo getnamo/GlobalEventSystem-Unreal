@@ -38,14 +38,24 @@ public:
 	void UnpinEvent(const FString& Domain, const FString& Event);
 
 	/** 
-	* Listen to an event in TargetDomain.TargetFunction
+	* Listen to an event in TargetDomain.TargetFunction via generic listener
 	*/
 	void AddListener(const FString& Domain, const FString& Event, const FGESEventListener& Listener);
+
+	/**
+	*	Listen to an event in TargetDomain.TargetFunction via passed in lambda
+	*/
+	void AddLambdaListener(const FString& Domain, const FString& Event, UObject* WorldContext, TFunction<void(const FGESWildcardProperty&)> ReceivingLambda);
 	
 	/**
 	* Stop listening to an event in TargetDomain.TargetFunction
 	*/
 	void RemoveListener(const FString& Domain, const FString& Event, const FGESEventListener& Listener);
+
+	/**
+	*	Listen to an event in TargetDomain.TargetFunction via passed in lambda
+	*/
+	void RemoveLambdaListener(const FString& Domain, const FString& Event, UObject* WorldContext, TFunction<void(const FGESWildcardProperty&)> ReceivingLambda);
 
 	/**
 	* Emit event in TargetDomain.TargetFunction with Struct type parameter data.

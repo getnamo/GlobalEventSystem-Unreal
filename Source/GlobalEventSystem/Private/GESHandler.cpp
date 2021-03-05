@@ -118,12 +118,17 @@ void FGESHandler::UnpinEvent(const FString& Domain, const FString& EventName)
 void FGESHandler::AddListener(const FString& Domain, const FString& EventName, const FGESEventListener& Listener)
 {
 	FString KeyString = Key(Domain, EventName);
+
+	//Create event if not already created
 	if (!EventMap.Contains(KeyString))
 	{
 		CreateEvent(Domain, EventName);
 	}
+
+	//Check passed listener validity
 	if (Listener.IsValidListener())
 	{
+		//Actually add this valid listener to map
 		FGESEvent& Event = EventMap[KeyString];
 		Event.Listeners.Add(Listener);
 
@@ -154,6 +159,10 @@ void FGESHandler::AddListener(const FString& Domain, const FString& EventName, c
 	}
 	else
 	{
+		//NB: validity can be violated due to delegate and lambda too
+		//TODO: add warnings in case of invalid delegate/lambda function binds
+
+		//Not valid, emit warnings
 		if (Listener.Receiver->IsValidLowLevelFast())
 		{
 			UE_LOG(LogTemp, Warning, TEXT("FGESHandler::AddListener Warning: \n%s does not have the function '%s'. Attempted to bind to GESEvent %s.%s"), *Listener.Receiver->GetFullName(), *Listener.FunctionName, *Domain, *EventName);
@@ -165,6 +174,22 @@ void FGESHandler::AddListener(const FString& Domain, const FString& EventName, c
 	}
 }
 
+void FGESHandler::AddLambdaListener(const FString& Domain, const FString& Event, UObject* WorldContext, TFunction<void(const FGESWildcardProperty&)> ReceivingLambda)
+{
+	FGESEventListener Listener;
+	Listener.bIsBoundToLambda = true;
+	Listener.LambdaFunction = ReceivingLambda;
+	Listener.Receiver = WorldContext;
+
+	//name is derived from WCO + lambda pointer address
+	
+	UE_LOG(LogTemp, Log, TEXT("Lambda ptr: %d"), (bool)ReceivingLambda);
+	//FString temp = FString::Printf(TEXT("%d"), (int32)(void*)ReceivingLambda);
+	Listener.FunctionName = Listener.Receiver->GetName() + TEXT(".lambda");// + temp;
+
+	AddListener(Domain, Event, Listener);
+}
+
 void FGESHandler::RemoveListener(const FString& Domain, const FString& Event, const FGESEventListener& Listener)
 {
 	FString KeyString = Key(Domain, Event);
@@ -174,6 +199,19 @@ void FGESHandler::RemoveListener(const FString& Domain, const FString& Event, co
 		return;
 	}
 	EventMap[KeyString].Listeners.Remove(Listener);
+}
+
+void FGESHandler::RemoveLambdaListener(const FString& Domain, const FString& Event, UObject* WorldContext, TFunction<void(const FGESWildcardProperty&)> ReceivingLambda)
+{
+	FGESEventListener Listener;
+	Listener.bIsBoundToLambda = true;
+	Listener.LambdaFunction = ReceivingLambda;
+	Listener.Receiver = WorldContext;
+
+	//name is derived from WCO + lambda pointer address
+	Listener.FunctionName = Listener.Receiver->GetName()+ TEXT(".lambda");// +FString::Printf(TEXT("%d"), ReceivingLambda);
+
+	RemoveListener(Domain, Event, Listener);
 }
 
 void FGESHandler::EmitToListenersWithData(const FGESEmitData& EmitData, TFunction<void(const FGESEventListener&)> DataFillCallback)
@@ -242,6 +280,16 @@ void FGESHandler::EmitToListenersWithData(const FGESEmitData& EmitData, TFunctio
 		//Check validity of receiver and function and call the function
 		if (Listener.Receiver->IsValidLowLevelFast())
 		{
+			if (Listener.bIsBoundToLambda && Listener.LambdaFunction != nullptr)
+			{
+				//this listener is handled by lambda instead
+				FGESWildcardProperty Wrapper;
+				Wrapper.Property = EmitData.Property;
+				Wrapper.PropertyPtr = EmitData.PropertyPtr;
+
+				Listener.LambdaFunction(Wrapper);
+				return;
+			}
 			if (Listener.bIsBoundToDelegate)
 			{
 				//this listener is handled by wildcard event delegate instead
@@ -276,6 +324,16 @@ void FGESHandler::EmitToListenersWithData(const FGESEmitData& EmitData, TFunctio
 			//Check validity of receiver and function and call the function
 			if (Listener.Receiver->IsValidLowLevelFast())
 			{
+				if (Listener.bIsBoundToLambda && Listener.LambdaFunction != nullptr)
+				{
+					//this listener is handled by lambda instead
+					FGESWildcardProperty Wrapper;
+					Wrapper.Property = EmitData.Property;
+					Wrapper.PropertyPtr = EmitData.PropertyPtr;
+
+					Listener.LambdaFunction(Wrapper);
+					return;
+				}
 				if (Listener.bIsBoundToDelegate)
 				{
 					//this listener is handled by wildcard event delegate instead
@@ -445,6 +503,16 @@ bool FGESHandler::EmitEvent(const FGESEmitData& EmitData)
 	{
 		EmitToListenersWithData(EmitData, [&EmitData](const FGESEventListener& Listener)
 		{
+			//C++ lambda case
+			if (Listener.bIsBoundToLambda && Listener.LambdaFunction != nullptr)
+			{
+				FGESWildcardProperty Wrapper;
+				Wrapper.Property = EmitData.Property;
+				Wrapper.PropertyPtr = EmitData.PropertyPtr;
+				
+				Listener.LambdaFunction(Wrapper);
+				return;
+			}
 			//If the listener bound it to a wildcard event delegate, emit with nullptr
 			if (Listener.bIsBoundToDelegate)
 			{
@@ -454,6 +522,8 @@ bool FGESHandler::EmitEvent(const FGESEmitData& EmitData)
 				Listener.OnePropertyFunctionDelegate.ExecuteIfBound(Wrapper);
 				return;
 			}
+			
+			//Neither lambda nor wildcard delegate, process no param prop
 			TFieldIterator<FProperty> Iterator(Listener.Function);
 
 			TArray<FProperty*> Properties;

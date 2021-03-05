@@ -62,7 +62,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGESOnePropertyMCSignature, const FG
 
 struct FGESEventListener
 {
-	UObject* Receiver;
+	UObject* Receiver;	////Used for world context
 	FString FunctionName;
 
 	/** Bound UFunction, valid after calling LinkFunction*/
@@ -72,10 +72,17 @@ struct FGESEventListener
 	bool bIsBoundToDelegate;
 	FGESOnePropertySignature OnePropertyFunctionDelegate;
 
+	bool bIsBoundToLambda;
+	TFunction<void(const FGESWildcardProperty&)> LambdaFunction;
+
 	FGESEventListener()
 	{
 		bIsBoundToDelegate = false;
+		bIsBoundToLambda = false;
 		FunctionName = TEXT("");
+		Function = nullptr;
+		Receiver = nullptr;
+		LambdaFunction = nullptr;
 	}
 
 	bool LinkFunction()
@@ -86,7 +93,7 @@ struct FGESEventListener
 
 	bool IsValidListener() const
 	{
-		return (Function != nullptr || bIsBoundToDelegate);
+		return (Function != nullptr || bIsBoundToDelegate || bIsBoundToLambda);
 	}
 
 	bool operator ==(FGESEventListener const &Other) {
