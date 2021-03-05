@@ -13,7 +13,7 @@ class GLOBALEVENTSYSTEM_API UGESBaseReceiverComponent : public UActorComponent
 	GENERATED_UCLASS_BODY()
 public:
 	//Wildcard receiver
-	//UPROPERTY(BlueprintReadWrite, Category = "GES Receiver")
+	UPROPERTY(BlueprintReadWrite, Category = "GES Receiver")
 	FGESOnePropertySignature OnEvent;
 
 	//Domain, Event, and receiving function name

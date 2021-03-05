@@ -28,8 +28,14 @@ USTRUCT(BlueprintType)
 struct FGESLocalBind
 {
 	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "GES Local Bind")
 	FString Domain;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "GES Local Bind")
 	FString Event;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "GES Local Bind")
 	FString ReceivingFunction;
 
 	FGESLocalBind();
