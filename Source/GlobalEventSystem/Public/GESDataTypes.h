@@ -23,6 +23,18 @@ struct FGESGlobalOptions
 	}
 };
 
+/** Convenience struct used to define a bind to a GES event*/
+USTRUCT(BlueprintType)
+struct FGESLocalBind
+{
+	GENERATED_USTRUCT_BODY()
+	FString Domain;
+	FString Event;
+	FString ReceivingFunction;
+
+	FGESLocalBind();
+};
+
 USTRUCT(BlueprintType)
 struct FGESWildcardProperty
 {
@@ -55,6 +67,7 @@ struct FGESEventListener
 	FGESEventListener()
 	{
 		bIsBoundToDelegate = false;
+		FunctionName = TEXT("");
 	}
 
 	bool LinkFunction()
@@ -87,6 +100,8 @@ struct FGESPinnedData
 	void CopyPropertyToPinnedBuffer();
 	void CleanupPinnedData();
 };
+
+
 
 struct FGESEvent
 {

@@ -17,6 +17,17 @@ void UGlobalEventSystemBPLibrary::GESUnbindEvent(UObject* WorldContextObject, co
 	FGESHandler::DefaultHandler()->RemoveListener(Domain, Event, Listener);
 }
 
+void UGlobalEventSystemBPLibrary::GESUnbindWildcardDelegate(UObject* WorldContextObject, const FGESOnePropertySignature& ReceivingFunction, const FString& Domain /*= TEXT("global.default")*/, const FString& Event /*= TEXT("")*/)
+{
+	FGESEventListener Listener;
+	Listener.Receiver = WorldContextObject;
+	Listener.FunctionName = WorldContextObject->GetName() + ReceivingFunction.GetUObject()->GetName();
+	Listener.OnePropertyFunctionDelegate = ReceivingFunction;
+	Listener.bIsBoundToDelegate = true;
+
+	FGESHandler::DefaultHandler()->RemoveListener(Domain, Event, Listener);
+}
+
 void UGlobalEventSystemBPLibrary::GESBindEvent(UObject* WorldContextObject, const FString& Domain /*= TEXT("global.default")*/, const FString& Event /*= TEXT("")*/, const FString& ReceivingFunction /*= TEXT("")*/)
 {
 	FGESEventListener Listener;
@@ -31,6 +42,7 @@ void UGlobalEventSystemBPLibrary::GESBindEventToWildcardDelegate(UObject* WorldC
 {
 	FGESEventListener Listener;
 	Listener.Receiver = WorldContextObject;
+	Listener.FunctionName = WorldContextObject->GetName() + ReceivingFunction.GetUObject()->GetName();
 	Listener.OnePropertyFunctionDelegate = ReceivingFunction;
 	Listener.bIsBoundToDelegate = true;
 

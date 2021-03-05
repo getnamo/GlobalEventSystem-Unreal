@@ -18,3 +18,10 @@ void FGESPinnedData::CleanupPinnedData()
 	Property = nullptr;
 	PropertyPtr = nullptr;
 }
+
+FGESLocalBind::FGESLocalBind()
+{
+	Domain = TEXT("global.default");
+	Event = TEXT("");
+	ReceivingFunction = TEXT("");
+}
