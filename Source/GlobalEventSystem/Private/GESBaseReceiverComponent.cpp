@@ -11,11 +11,6 @@ UGESBaseReceiverComponent::UGESBaseReceiverComponent(const FObjectInitializer& i
 	BindSettings.ReceivingFunction = TEXT("OnEvent(component)");
 }
 
-/*void UGESBaseReceiverComponent::OnEventToPlaceHolderFunction(const FString& PlaceHolderParam)
-{
-	UE_LOG(LogTemp, Warning, TEXT("PlaceHolder function received event (override BindSettings.ReceivingFunction to match your own receiver)"));
-}*/
-
 void UGESBaseReceiverComponent::BeginPlay()
 {
 	Super::BeginPlay();

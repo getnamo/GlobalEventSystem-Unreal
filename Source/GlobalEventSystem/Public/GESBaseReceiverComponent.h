@@ -43,11 +43,6 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = "GES Receiver")
 	bool bDidReceiveEventAtLeastOnce;
 
-	//Unused
-	/** Placeholder to output warning if you forget to specialize bind settings */
-	//UFUNCTION(BlueprintCallable, Category = "GESReceiver Functions")
-	//void OnEventToPlaceHolderFunction(const FString& PlaceHolderParam);
-
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
