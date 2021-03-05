@@ -6,7 +6,7 @@ UGESBaseReceiverComponent::UGESBaseReceiverComponent(const FObjectInitializer& i
 	bBindOnBeginPlay = true;
 	bUnbindOnEndPlay = true;
 	bPinInternalDataForPolling = true;
-	bDidReceiveOnEventAtLeastOnce = false;
+	bDidReceiveEventAtLeastOnce = false;
 
 	BindSettings.ReceivingFunction = TEXT("OnEvent(component)");
 }
@@ -67,7 +67,7 @@ void UGESBaseReceiverComponent::HandleInternalEvent(const FGESWildcardProperty& 
 		LastReceivedProperty.PropertyPtr = PinnedData.PropertyPtr;
 	}
 
-	bDidReceiveOnEventAtLeastOnce = true;
+	bDidReceiveEventAtLeastOnce = true;
 
 	OnEvent.Broadcast(WildcardProperty);
 }

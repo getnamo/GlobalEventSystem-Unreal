@@ -7,7 +7,7 @@
 #include "GESBaseReceiverComponent.generated.h"
 
 /** Convenience base class for receiving GES events in an organized way for actors.*/
-UCLASS(BlueprintType, ClassGroup = "Utility", meta = (BlueprintSpawnableComponent))
+UCLASS(BlueprintType, Blueprintable, ClassGroup = "Utility", meta = (BlueprintSpawnableComponent))
 class GLOBALEVENTSYSTEM_API UGESBaseReceiverComponent : public UActorComponent
 {
 	GENERATED_UCLASS_BODY()
@@ -40,8 +40,8 @@ public:
 	bool bPinInternalDataForPolling;
 
 	/** Used to know if polling for last data will give valid results */
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "GES Receiver")
-	bool bDidReceiveOnEventAtLeastOnce;
+	UPROPERTY(BlueprintReadWrite, Category = "GES Receiver")
+	bool bDidReceiveEventAtLeastOnce;
 
 	//Unused
 	/** Placeholder to output warning if you forget to specialize bind settings */
