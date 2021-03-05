@@ -21,7 +21,7 @@ void UGlobalEventSystemBPLibrary::GESUnbindWildcardDelegate(UObject* WorldContex
 {
 	FGESEventListener Listener;
 	Listener.Receiver = WorldContextObject;
-	Listener.FunctionName = WorldContextObject->GetName() + ReceivingFunction.GetUObject()->GetName();
+	Listener.FunctionName = WorldContextObject->GetName() + TEXT("delegate");// + ReceivingFunction.GetUObject()->GetName();
 	Listener.OnePropertyFunctionDelegate = ReceivingFunction;
 	Listener.bIsBoundToDelegate = true;
 
@@ -42,7 +42,8 @@ void UGlobalEventSystemBPLibrary::GESBindEventToWildcardDelegate(UObject* WorldC
 {
 	FGESEventListener Listener;
 	Listener.Receiver = WorldContextObject;
-	Listener.FunctionName = WorldContextObject->GetName() + ReceivingFunction.GetUObject()->GetName();
+	//atm only supports one delegate, todo: expand to multicast
+	Listener.FunctionName = WorldContextObject->GetName() + TEXT("delegate");// +ReceivingFunction.GetUObject()->GetName();
 	Listener.OnePropertyFunctionDelegate = ReceivingFunction;
 	Listener.bIsBoundToDelegate = true;
 
@@ -86,6 +87,12 @@ void UGlobalEventSystemBPLibrary::SetGESOptions(const FGESGlobalOptions& InOptio
 
 bool UGlobalEventSystemBPLibrary::Conv_PropToInt(const FGESWildcardProperty& InProp, int32& OutInt)
 {
+	if (InProp.Property == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UGlobalEventSystemBPLibrary::Conv_PropToInt InProp is a nullptr"));
+		return false;
+	}
+
 	if (InProp.Property->IsA<FNumericProperty>())
 	{
 		FNumericProperty* Property = CastField<FNumericProperty>(InProp.Property.Get());
@@ -110,6 +117,12 @@ bool UGlobalEventSystemBPLibrary::Conv_PropToInt(const FGESWildcardProperty& InP
 
 bool UGlobalEventSystemBPLibrary::Conv_PropToFloat(const FGESWildcardProperty& InProp, float& OutFloat)
 {
+	if (InProp.Property == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UGlobalEventSystemBPLibrary::Conv_PropToFloat InProp is a nullptr"));
+		return false;
+	}
+
 	if (InProp.Property->IsA<FNumericProperty>())
 	{
 		FNumericProperty* Property = CastField<FNumericProperty>(InProp.Property.Get());
@@ -134,6 +147,12 @@ bool UGlobalEventSystemBPLibrary::Conv_PropToFloat(const FGESWildcardProperty& I
 
 bool UGlobalEventSystemBPLibrary::Conv_PropToBool(const FGESWildcardProperty& InProp, bool& OutBool)
 {
+	if (InProp.Property == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UGlobalEventSystemBPLibrary::Conv_PropToBool InProp is a nullptr"));
+		return false;
+	}
+
 	if (InProp.Property->IsA<FBoolProperty>())
 	{
 		FBoolProperty* Property = CastField<FBoolProperty>(InProp.Property.Get());
@@ -149,6 +168,12 @@ bool UGlobalEventSystemBPLibrary::Conv_PropToBool(const FGESWildcardProperty& In
 
 bool UGlobalEventSystemBPLibrary::Conv_PropToStringRef(const FGESWildcardProperty& InProp, FString& OutString)
 {
+	if (InProp.Property == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UGlobalEventSystemBPLibrary::Conv_PropToStringRef InProp is a nullptr"));
+		return false;
+	}
+
 	if (InProp.Property->IsA<FStrProperty>())
 	{
 		FStrProperty* Property = CastField<FStrProperty>(InProp.Property.Get());
@@ -206,6 +231,7 @@ bool UGlobalEventSystemBPLibrary::Conv_PropToStringRef(const FGESWildcardPropert
 
 FString UGlobalEventSystemBPLibrary::Conv_PropToString(const FGESWildcardProperty& InProp)
 {
+
 	FString OutString;
 	Conv_PropToStringRef(InProp, OutString);
 	return OutString;
@@ -213,6 +239,12 @@ FString UGlobalEventSystemBPLibrary::Conv_PropToString(const FGESWildcardPropert
 
 bool UGlobalEventSystemBPLibrary::Conv_PropToName(const FGESWildcardProperty& InProp, FName& OutName)
 {
+	if (InProp.Property == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UGlobalEventSystemBPLibrary::Conv_PropToName InProp is a nullptr"));
+		return false;
+	}
+
 	if (InProp.Property->IsA<FNameProperty>())
 	{
 		FNameProperty* Property = CastField<FNameProperty>(InProp.Property.Get());
@@ -234,6 +266,17 @@ bool UGlobalEventSystemBPLibrary::Conv_PropToStruct(const FGESWildcardProperty& 
 
 bool UGlobalEventSystemBPLibrary::HandlePropToStruct(const FGESWildcardProperty& InProp, FGESWildcardProperty& OutProp)
 {
+	if (InProp.Property == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UGlobalEventSystemBPLibrary::HandlePropToStruct InProp is a nullptr"));
+		return false;
+	}
+	if (OutProp.Property == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UGlobalEventSystemBPLibrary::HandlePropToStruct OutProp is a nullptr"));
+		return false;
+	}
+
 	if (InProp.Property->IsA<FStructProperty>() && OutProp.Property->IsA<FStructProperty>())
 	{
 		FStructProperty* InStructProp = CastField<FStructProperty>(InProp.Property.Get());
@@ -250,6 +293,11 @@ bool UGlobalEventSystemBPLibrary::HandlePropToStruct(const FGESWildcardProperty&
 
 bool UGlobalEventSystemBPLibrary::Conv_PropToObject(const FGESWildcardProperty& InProp, UObject*& OutObject)
 {
+	if (InProp.Property == nullptr)
+	{
+		return false;
+	}
+
 	if (InProp.Property->IsA<FObjectProperty>())
 	{
 		FObjectProperty* Property = CastField<FObjectProperty>(InProp.Property.Get());

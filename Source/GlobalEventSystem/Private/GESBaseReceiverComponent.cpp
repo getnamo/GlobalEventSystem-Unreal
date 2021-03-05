@@ -5,6 +5,8 @@ UGESBaseReceiverComponent::UGESBaseReceiverComponent(const FObjectInitializer& i
 {
 	bBindOnBeginPlay = true;
 	bUnbindOnEndPlay = true;
+	bPinInternalDataForPolling = true;
+	bDidReceiveOnEventAtLeastOnce = false;
 
 	BindSettings.ReceivingFunction = TEXT("OnEvent(component)");
 }
@@ -22,7 +24,8 @@ void UGESBaseReceiverComponent::BeginPlay()
 		//special case
 		if (BindSettings.ReceivingFunction == TEXT("OnEvent(component)"))
 		{
-			UGlobalEventSystemBPLibrary::GESBindEventToWildcardDelegate(this, OnEvent, BindSettings.Domain, BindSettings.Event);
+			InternalListener.BindDynamic(this, &UGESBaseReceiverComponent::HandleInternalEvent);
+			UGlobalEventSystemBPLibrary::GESBindEventToWildcardDelegate(this, InternalListener, BindSettings.Domain, BindSettings.Event);
 		}
 		else
 		{
@@ -37,7 +40,8 @@ void UGESBaseReceiverComponent::EndPlay(const EEndPlayReason::Type EndPlayReason
 	{
 		if (BindSettings.ReceivingFunction == TEXT("OnEvent(component)"))
 		{
-			UGlobalEventSystemBPLibrary::GESUnbindWildcardDelegate(this, OnEvent, BindSettings.Domain, BindSettings.Event);
+			UGlobalEventSystemBPLibrary::GESUnbindWildcardDelegate(this, InternalListener, BindSettings.Domain, BindSettings.Event);
+			PinnedData.CleanupPinnedData();
 		}
 		else
 		{
@@ -45,4 +49,25 @@ void UGESBaseReceiverComponent::EndPlay(const EEndPlayReason::Type EndPlayReason
 		}
 	}
 	Super::EndPlay(EndPlayReason);
+}
+
+void UGESBaseReceiverComponent::HandleInternalEvent(const FGESWildcardProperty& WildcardProperty)
+{
+	LastReceivedProperty = WildcardProperty;
+
+	if (bPinInternalDataForPolling)
+	{
+		PinnedData.Property = WildcardProperty.Property.Get();
+		PinnedData.PropertyPtr = WildcardProperty.PropertyPtr;
+
+		//We need to use pinning to catch non-pinned data emitted
+		PinnedData.CopyPropertyToPinnedBuffer();
+
+		LastReceivedProperty.Property = PinnedData.Property;
+		LastReceivedProperty.PropertyPtr = PinnedData.PropertyPtr;
+	}
+
+	bDidReceiveOnEventAtLeastOnce = true;
+
+	OnEvent.Broadcast(WildcardProperty);
 }

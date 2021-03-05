@@ -58,6 +58,8 @@ struct FGESWildcardProperty
 DECLARE_DYNAMIC_DELEGATE(FGESEmptySignature);
 DECLARE_DYNAMIC_DELEGATE_OneParam(FGESOnePropertySignature, const FGESWildcardProperty&, WildcardProperty);
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGESOnePropertyMCSignature, const FGESWildcardProperty&, WildcardProperty);
+
 struct FGESEventListener
 {
 	UObject* Receiver;
