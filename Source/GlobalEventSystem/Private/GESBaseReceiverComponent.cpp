@@ -37,7 +37,7 @@ void UGESBaseReceiverComponent::EndPlay(const EEndPlayReason::Type EndPlayReason
 	{
 		if (BindSettings.ReceivingFunction == TEXT("OnEvent(component)"))
 		{
-			//UGlobalEventSystemBPLibrary::GESUnbindEvent()
+			UGlobalEventSystemBPLibrary::GESUnbindWildcardDelegate(this, OnEvent, BindSettings.Domain, BindSettings.Event);
 		}
 		else
 		{
