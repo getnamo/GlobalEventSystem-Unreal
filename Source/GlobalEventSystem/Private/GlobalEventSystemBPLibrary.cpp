@@ -21,7 +21,15 @@ void UGlobalEventSystemBPLibrary::GESUnbindWildcardDelegate(UObject* WorldContex
 {
 	FGESEventListener Listener;
 	Listener.Receiver = WorldContextObject;
-	Listener.FunctionName = WorldContextObject->GetName() + TEXT("delegate");// + ReceivingFunction.GetUObject()->GetName();
+
+	if (ReceivingFunction.GetUObject()->IsValidLowLevelFast())
+	{
+		Listener.FunctionName = WorldContextObject->GetName() + ReceivingFunction.GetUObject()->GetName();
+	}
+	else
+	{
+		Listener.FunctionName = WorldContextObject->GetName() + TEXT(".UnboundDelegate");
+	}
 	Listener.OnePropertyFunctionDelegate = ReceivingFunction;
 	Listener.bIsBoundToDelegate = true;
 
@@ -42,8 +50,14 @@ void UGlobalEventSystemBPLibrary::GESBindEventToWildcardDelegate(UObject* WorldC
 {
 	FGESEventListener Listener;
 	Listener.Receiver = WorldContextObject;
-	//atm only supports one delegate, todo: expand to multicast
-	Listener.FunctionName = WorldContextObject->GetName() + TEXT("delegate");// +ReceivingFunction.GetUObject()->GetName();
+	if (ReceivingFunction.GetUObject()->IsValidLowLevelFast())
+	{
+		Listener.FunctionName = WorldContextObject->GetName() + ReceivingFunction.GetUObject()->GetName();
+	}
+	else
+	{
+		Listener.FunctionName = WorldContextObject->GetName() + TEXT(".UnboundDelegate");
+	}
 	Listener.OnePropertyFunctionDelegate = ReceivingFunction;
 	Listener.bIsBoundToDelegate = true;
 
