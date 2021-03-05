@@ -1,4 +1,5 @@
 #include "GESHandler.h"
+#include "GlobalEventSystemBPLibrary.h"
 #include "Engine/World.h"
 
 TSharedPtr<FGESHandler> FGESHandler::PrivateDefaultHandler = MakeShareable(new FGESHandler());
@@ -174,20 +175,113 @@ void FGESHandler::AddListener(const FString& Domain, const FString& EventName, c
 	}
 }
 
-void FGESHandler::AddLambdaListener(const FString& Domain, const FString& Event, UObject* WorldContext, TFunction<void(const FGESWildcardProperty&)> ReceivingLambda)
+void FGESHandler::AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(const FGESWildcardProperty&)> ReceivingLambda)
 {
 	FGESEventListener Listener;
 	Listener.bIsBoundToLambda = true;
 	Listener.LambdaFunction = ReceivingLambda;
-	Listener.Receiver = WorldContext;
+	Listener.Receiver = BindInfo.WorldContext;
 
 	//name is derived from WCO + lambda pointer address
-	
+
 	UE_LOG(LogTemp, Log, TEXT("Lambda ptr: %d"), (bool)ReceivingLambda);
 	//FString temp = FString::Printf(TEXT("%d"), (int32)(void*)ReceivingLambda);
 	Listener.FunctionName = Listener.Receiver->GetName() + TEXT(".lambda");// + temp;
 
-	AddListener(Domain, Event, Listener);
+	AddListener(BindInfo.Domain, BindInfo.Event, Listener);
+}
+
+void FGESHandler::AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(UStruct* Struct, void* StructPtr)> ReceivingLambda)
+{
+	AddLambdaListener(BindInfo,
+		[ReceivingLambda](const FGESWildcardProperty& Data)
+		{
+			FStructProperty* StructProperty = CastField<FStructProperty>(Data.Property.Get());
+
+			if (!StructProperty)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("FGESHandler::AddLambdaListener callback: Expected a property structure, received %s; Receive skipped."), *Data.Property->GetName());
+				return;
+			}
+
+			ReceivingLambda(StructProperty->Struct, Data.PropertyPtr);
+		});
+}
+
+void FGESHandler::AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(const FString&)> ReceivingLambda)
+{
+	AddLambdaListener(BindInfo,
+		[ReceivingLambda](const FGESWildcardProperty& Data)
+		{
+			FString Value;
+			UGlobalEventSystemBPLibrary::Conv_PropToStringRef(Data, Value);
+			ReceivingLambda(Value);
+		});
+}
+
+void FGESHandler::AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(UObject*)> ReceivingLambda)
+{
+	AddLambdaListener(BindInfo,
+		[ReceivingLambda](const FGESWildcardProperty& Data)
+		{
+			UObject* Value = 0;
+			UGlobalEventSystemBPLibrary::Conv_PropToObject(Data, Value);
+			ReceivingLambda(Value);
+		});
+}
+
+void FGESHandler::AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(float)> ReceivingLambda)
+{
+	AddLambdaListener(BindInfo,
+		[ReceivingLambda](const FGESWildcardProperty& Data)
+		{
+			float Value = 0;
+			UGlobalEventSystemBPLibrary::Conv_PropToFloat(Data, Value);
+			ReceivingLambda(Value);
+		});
+}
+
+void FGESHandler::AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(int32)> ReceivingLambda)
+{
+	AddLambdaListener(BindInfo,
+		[ReceivingLambda](const FGESWildcardProperty& Data)
+		{
+			int32 Value = 0;
+			UGlobalEventSystemBPLibrary::Conv_PropToInt(Data, Value);
+
+			ReceivingLambda(Value);
+		});
+}
+
+void FGESHandler::AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(bool)> ReceivingLambda)
+{
+	AddLambdaListener(BindInfo,
+		[ReceivingLambda](const FGESWildcardProperty& Data)
+		{
+			bool Value = false;
+			UGlobalEventSystemBPLibrary::Conv_PropToBool(Data, Value);
+			ReceivingLambda(Value);
+		});
+}
+
+void FGESHandler::AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(const FName&)> ReceivingLambda)
+{
+	AddLambdaListener(BindInfo,
+		[ReceivingLambda](const FGESWildcardProperty& Data)
+		{
+			FName Value;
+			UGlobalEventSystemBPLibrary::Conv_PropToName(Data, Value);
+			ReceivingLambda(Value);
+		});
+}
+
+void FGESHandler::AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(void)> ReceivingLambda)
+{
+	AddLambdaListener(BindInfo,
+		[ReceivingLambda](const FGESWildcardProperty& Data)
+		{
+			ReceivingLambda();
+		});
 }
 
 void FGESHandler::RemoveListener(const FString& Domain, const FString& Event, const FGESEventListener& Listener)
@@ -201,17 +295,17 @@ void FGESHandler::RemoveListener(const FString& Domain, const FString& Event, co
 	EventMap[KeyString].Listeners.Remove(Listener);
 }
 
-void FGESHandler::RemoveLambdaListener(const FString& Domain, const FString& Event, UObject* WorldContext, TFunction<void(const FGESWildcardProperty&)> ReceivingLambda)
+void FGESHandler::RemoveLambdaListener(FGESLambdaBind BindInfo, TFunction<void(const FGESWildcardProperty&)> ReceivingLambda)
 {
 	FGESEventListener Listener;
 	Listener.bIsBoundToLambda = true;
 	Listener.LambdaFunction = ReceivingLambda;
-	Listener.Receiver = WorldContext;
+	Listener.Receiver = BindInfo.WorldContext;
 
 	//name is derived from WCO + lambda pointer address
-	Listener.FunctionName = Listener.Receiver->GetName()+ TEXT(".lambda");// +FString::Printf(TEXT("%d"), ReceivingLambda);
+	Listener.FunctionName = Listener.Receiver->GetName() + TEXT(".lambda");// +FString::Printf(TEXT("%d"), ReceivingLambda);
 
-	RemoveListener(Domain, Event, Listener);
+	RemoveListener(BindInfo.Domain, BindInfo.Event, Listener);
 }
 
 void FGESHandler::EmitToListenersWithData(const FGESEmitData& EmitData, TFunction<void(const FGESEventListener&)> DataFillCallback)
@@ -223,6 +317,13 @@ void FGESHandler::EmitToListenersWithData(const FGESEmitData& EmitData, TFunctio
 	}
 	FGESEvent& Event = EventMap[KeyString];
 	Event.WorldContext = EmitData.WorldContext;
+
+	if (EmitData.WorldContext == nullptr)
+	{
+		UE_LOG(LogTemp, Error, TEXT("FGESHandler::EmitToListenersWithData: Emitted event has no world context!"));
+		return;
+	}
+
 	UWorld* World = Event.WorldContext->GetWorld();
 
 	//Attach a world listener to each unique world
@@ -332,7 +433,7 @@ void FGESHandler::EmitToListenersWithData(const FGESEmitData& EmitData, TFunctio
 					Wrapper.PropertyPtr = EmitData.PropertyPtr;
 
 					Listener.LambdaFunction(Wrapper);
-					return;
+					continue;
 				}
 				if (Listener.bIsBoundToDelegate)
 				{
@@ -341,7 +442,7 @@ void FGESHandler::EmitToListenersWithData(const FGESEmitData& EmitData, TFunctio
 					Wrapper.Property = EmitData.Property;
 					Wrapper.PropertyPtr = EmitData.PropertyPtr;
 					Listener.OnePropertyFunctionDelegate.ExecuteIfBound(Wrapper);
-					return;
+					continue;
 				}
 
 				UFunction* BPFunction = Listener.Receiver->FindFunction(FName(*Listener.FunctionName));

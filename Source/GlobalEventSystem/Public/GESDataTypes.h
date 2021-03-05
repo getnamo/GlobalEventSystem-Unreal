@@ -41,6 +41,25 @@ struct FGESLocalBind
 	FGESLocalBind();
 };
 
+/** 
+*	Wrapper for lambda bind call data minus actual receiver function.
+*	Used in AddLambdaListener and remove variant.
+*/
+USTRUCT()
+struct FGESLambdaBind
+{
+	GENERATED_USTRUCT_BODY()
+
+		UPROPERTY()
+		FString Domain;
+
+	UPROPERTY()
+		FString Event;
+
+	UPROPERTY()
+		UObject* WorldContext;
+};
+
 USTRUCT(BlueprintType)
 struct FGESWildcardProperty
 {
@@ -51,6 +70,7 @@ struct FGESWildcardProperty
 
 	void* PropertyPtr;
 
+	//Not used, expects ptr to be pointing to a valid prop
 	//UPROPERTY()
 	//TArray<uint8> PropertyMemory;
 };
