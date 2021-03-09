@@ -45,7 +45,7 @@ public:
 	/**
 	*	Listen to an event in TargetDomain.TargetFunction via passed in lambda
 	*/
-	void AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(const FGESWildcardProperty&)> ReceivingLambda);
+	FString AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(const FGESWildcardProperty&)> ReceivingLambda);
 	
 	/**
 	* Stop listening to an event in TargetDomain.TargetFunction
@@ -56,6 +56,11 @@ public:
 	*	Listen to an event in TargetDomain.TargetFunction via passed in lambda
 	*/
 	void RemoveLambdaListener(FGESLambdaBind BindInfo, TFunction<void(const FGESWildcardProperty&)> ReceivingLambda);
+
+	/** 
+	*	Remove lambda by function id string. Used in case of lambdas without ref to initial function.
+	*/
+	void RemoveLambdaListener(FGESLambdaBind BindInfo, const FString& LambdaName);
 
 	/**
 	* Emit event in TargetDomain.TargetFunction with Struct type parameter data.
@@ -73,14 +78,14 @@ public:
 	bool EmitEvent(const FGESEmitData& EmitData);
 
 	//overloaded lambda binds
-	void AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(UStruct* Struct, void* StructPtr)> ReceivingLambda);
-	void AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(const FString&)> ReceivingLambda);
-	void AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(UObject*)> ReceivingLambda);
-	void AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(float)> ReceivingLambda);
-	void AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(int32)> ReceivingLambda);
-	void AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(bool)> ReceivingLambda);
-	void AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(const FName&)> ReceivingLambda);
-	void AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(void)> ReceivingLambda);
+	FString AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(UStruct* Struct, void* StructPtr)> ReceivingLambda);
+	FString AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(const FString&)> ReceivingLambda);
+	FString AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(UObject*)> ReceivingLambda);
+	FString AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(float)> ReceivingLambda);
+	FString AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(int32)> ReceivingLambda);
+	FString AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(bool)> ReceivingLambda);
+	FString AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(const FName&)> ReceivingLambda);
+	FString AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(void)> ReceivingLambda);
 
 	/**
 	* Update global options

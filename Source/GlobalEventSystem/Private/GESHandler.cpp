@@ -175,7 +175,7 @@ void FGESHandler::AddListener(const FString& Domain, const FString& EventName, c
 	}
 }
 
-void FGESHandler::AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(const FGESWildcardProperty&)> ReceivingLambda)
+FString FGESHandler::AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(const FGESWildcardProperty&)> ReceivingLambda)
 {
 	FGESEventListener Listener;
 	Listener.bIsBoundToLambda = true;
@@ -183,17 +183,17 @@ void FGESHandler::AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(cons
 	Listener.Receiver = BindInfo.WorldContext;
 
 	//name is derived from WCO + lambda pointer address
-
-	UE_LOG(LogTemp, Log, TEXT("Lambda ptr: %d"), (bool)ReceivingLambda);
-	//FString temp = FString::Printf(TEXT("%d"), (int32)(void*)ReceivingLambda);
-	Listener.FunctionName = Listener.Receiver->GetName() + TEXT(".lambda");// + temp;
+	FString FunctionPtr = FString::Printf(TEXT("%d"), (void*)&ReceivingLambda);
+	Listener.FunctionName = Listener.Receiver->GetName() + TEXT(".lambda.") + FunctionPtr;
 
 	AddListener(BindInfo.Domain, BindInfo.Event, Listener);
+
+	return Listener.FunctionName;
 }
 
-void FGESHandler::AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(UStruct* Struct, void* StructPtr)> ReceivingLambda)
+FString FGESHandler::AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(UStruct* Struct, void* StructPtr)> ReceivingLambda)
 {
-	AddLambdaListener(BindInfo,
+	return AddLambdaListener(BindInfo,
 		[ReceivingLambda](const FGESWildcardProperty& Data)
 		{
 			FStructProperty* StructProperty = CastField<FStructProperty>(Data.Property.Get());
@@ -208,9 +208,9 @@ void FGESHandler::AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(UStr
 		});
 }
 
-void FGESHandler::AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(const FString&)> ReceivingLambda)
+FString FGESHandler::AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(const FString&)> ReceivingLambda)
 {
-	AddLambdaListener(BindInfo,
+	return AddLambdaListener(BindInfo,
 		[ReceivingLambda](const FGESWildcardProperty& Data)
 		{
 			FString Value;
@@ -219,9 +219,9 @@ void FGESHandler::AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(cons
 		});
 }
 
-void FGESHandler::AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(UObject*)> ReceivingLambda)
+FString FGESHandler::AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(UObject*)> ReceivingLambda)
 {
-	AddLambdaListener(BindInfo,
+	return AddLambdaListener(BindInfo,
 		[ReceivingLambda](const FGESWildcardProperty& Data)
 		{
 			UObject* Value = 0;
@@ -230,9 +230,9 @@ void FGESHandler::AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(UObj
 		});
 }
 
-void FGESHandler::AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(float)> ReceivingLambda)
+FString FGESHandler::AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(float)> ReceivingLambda)
 {
-	AddLambdaListener(BindInfo,
+	return AddLambdaListener(BindInfo,
 		[ReceivingLambda](const FGESWildcardProperty& Data)
 		{
 			float Value = 0;
@@ -241,9 +241,9 @@ void FGESHandler::AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(floa
 		});
 }
 
-void FGESHandler::AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(int32)> ReceivingLambda)
+FString FGESHandler::AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(int32)> ReceivingLambda)
 {
-	AddLambdaListener(BindInfo,
+	return AddLambdaListener(BindInfo,
 		[ReceivingLambda](const FGESWildcardProperty& Data)
 		{
 			int32 Value = 0;
@@ -253,9 +253,9 @@ void FGESHandler::AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(int3
 		});
 }
 
-void FGESHandler::AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(bool)> ReceivingLambda)
+FString FGESHandler::AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(bool)> ReceivingLambda)
 {
-	AddLambdaListener(BindInfo,
+	return AddLambdaListener(BindInfo,
 		[ReceivingLambda](const FGESWildcardProperty& Data)
 		{
 			bool Value = false;
@@ -264,9 +264,9 @@ void FGESHandler::AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(bool
 		});
 }
 
-void FGESHandler::AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(const FName&)> ReceivingLambda)
+FString FGESHandler::AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(const FName&)> ReceivingLambda)
 {
-	AddLambdaListener(BindInfo,
+	return AddLambdaListener(BindInfo,
 		[ReceivingLambda](const FGESWildcardProperty& Data)
 		{
 			FName Value;
@@ -275,9 +275,9 @@ void FGESHandler::AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(cons
 		});
 }
 
-void FGESHandler::AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(void)> ReceivingLambda)
+FString FGESHandler::AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(void)> ReceivingLambda)
 {
-	AddLambdaListener(BindInfo,
+	return AddLambdaListener(BindInfo,
 		[ReceivingLambda](const FGESWildcardProperty& Data)
 		{
 			ReceivingLambda();
@@ -302,8 +302,18 @@ void FGESHandler::RemoveLambdaListener(FGESLambdaBind BindInfo, TFunction<void(c
 	Listener.LambdaFunction = ReceivingLambda;
 	Listener.Receiver = BindInfo.WorldContext;
 
-	//name is derived from WCO + lambda pointer address
-	Listener.FunctionName = Listener.Receiver->GetName() + TEXT(".lambda");// +FString::Printf(TEXT("%d"), ReceivingLambda);
+	FString FunctionPtr = FString::Printf(TEXT("%d"), (void*)&ReceivingLambda);
+	Listener.FunctionName = Listener.Receiver->GetName() + TEXT(".lambda.") + FunctionPtr;
+
+	RemoveListener(BindInfo.Domain, BindInfo.Event, Listener);
+}
+
+void FGESHandler::RemoveLambdaListener(FGESLambdaBind BindInfo, const FString& LambdaName)
+{
+	FGESEventListener Listener;
+	Listener.bIsBoundToLambda = true;
+	Listener.Receiver = BindInfo.WorldContext;
+	Listener.FunctionName = LambdaName;
 
 	RemoveListener(BindInfo.Domain, BindInfo.Event, Listener);
 }
