@@ -3,10 +3,13 @@
 #include "CoreMinimal.h"
 #include "GESDataTypes.generated.h"
 
+/** 
+* Global options for GESHandler. Used in BP library static calls.
+*/
 USTRUCT(BlueprintType)
 struct FGESGlobalOptions
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Whether to ensure structs are exactly the same. Turn off for small performance boost. Default true.*/
 	UPROPERTY(BlueprintReadWrite, Category = "GES Global Options")
@@ -23,22 +26,25 @@ struct FGESGlobalOptions
 	}
 };
 
-/** Convenience struct used to define a bind to a GES event*/
+/** Struct used to define a bind to a GES event by function name. (Used in GESBaseReceiverComponents) */
 USTRUCT(BlueprintType)
-struct FGESLocalBind
+struct FGESNameBind
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
+	/** Abstract Domain name used in GES, similar to a channel concept. */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "GES Local Bind")
 	FString Domain;
 	
+	/** Abstract event name used in GES. Unique when combined with Domain. */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "GES Local Bind")
 	FString Event;
 
+	/** Name of function receiving event. */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "GES Local Bind")
 	FString ReceivingFunction;
 
-	FGESLocalBind();
+	FGESNameBind();
 };
 
 /** 
@@ -46,143 +52,47 @@ struct FGESLocalBind
 *	Used in AddLambdaListener and remove variant.
 */
 USTRUCT()
-struct FGESLambdaBind
+struct FGESEventContext
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
-		UPROPERTY()
-		FString Domain;
-
+	/** Abstract Domain name used in GES, similar to a channel concept. */
 	UPROPERTY()
-		FString Event;
+	FString Domain;
 
+	/** Abstract event name used in GES. Unique when combined with Domain. */
 	UPROPERTY()
-		UObject* WorldContext;
+	FString Event;
+
+	/** World context object. Used to determine max lifetime of event. */
+	UPROPERTY()
+	UObject* WorldContext;
+
+	FGESEventContext();
 };
 
+
+/** 
+* Wrapper struct for a wildcard property. Allows directly binding GES events to
+* delegate events with GESBPLibrary conversion casting used to specialize the property.
+*/
 USTRUCT(BlueprintType)
 struct FGESWildcardProperty
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
+	/** Property wrapper. Use GESBPLibrary conversion functions to obtained specialized conversions.*/
 	UPROPERTY(BlueprintReadOnly, Category = "GES Global Options")
 	TFieldPath<FProperty> Property;
 
 	void* PropertyPtr;
-
-	//Not used, expects ptr to be pointing to a valid prop
-	//UPROPERTY()
-	//TArray<uint8> PropertyMemory;
 };
 
+/** No param Delegate */
 DECLARE_DYNAMIC_DELEGATE(FGESEmptySignature);
+
+/** Wildcard Delegate */
 DECLARE_DYNAMIC_DELEGATE_OneParam(FGESOnePropertySignature, const FGESWildcardProperty&, WildcardProperty);
 
+/** Multicast variant of Wildcard Delegate (used in BaseReceiverComponents) */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGESOnePropertyMCSignature, const FGESWildcardProperty&, WildcardProperty);
-
-struct FGESEventListener
-{
-	UObject* Receiver;	////Used for world context
-	FString FunctionName;
-
-	/** Bound UFunction, valid after calling LinkFunction*/
-	UFunction* Function;
-
-	//Optionally we could be using an event delegate
-	bool bIsBoundToDelegate;
-	FGESOnePropertySignature OnePropertyFunctionDelegate;
-
-	bool bIsBoundToLambda;
-	TFunction<void(const FGESWildcardProperty&)> LambdaFunction;
-
-	FGESEventListener()
-	{
-		bIsBoundToDelegate = false;
-		bIsBoundToLambda = false;
-		FunctionName = TEXT("");
-		Function = nullptr;
-		Receiver = nullptr;
-		LambdaFunction = nullptr;
-	}
-
-	bool LinkFunction()
-	{
-		Function = Receiver->FindFunction(FName(*FunctionName));
-		return IsValidListener();
-	}
-
-	bool IsValidListener() const
-	{
-		return (Function != nullptr || bIsBoundToDelegate || bIsBoundToLambda);
-	}
-
-	bool operator ==(FGESEventListener const &Other) {
-		return (Other.Receiver == Receiver) && (Other.FunctionName == FunctionName);
-	}
-};
-
-struct FGESPinnedData
-{
-	FProperty* Property;
-	void* PropertyPtr;
-	TArray<uint8> PropertyData;
-
-	FGESPinnedData()
-	{
-		Property = nullptr;
-		PropertyPtr = nullptr;
-	}
-	void CopyPropertyToPinnedBuffer();
-	void CleanupPinnedData();
-};
-
-
-
-struct FGESEvent
-{
-	//If pinned an event will emit the moment you add a listener if it has been already fired once
-	bool bPinned;
-	FGESPinnedData PinnedData;
-
-	FString Domain;
-	FString Event;
-	TArray<FGESEventListener> Listeners;
-	UObject* WorldContext;
-
-	FGESEvent()
-	{
-		PinnedData = FGESPinnedData();
-		WorldContext = nullptr;
-	}
-
-	//todo: add restrictions e.g. must apply interface, 
-	//	should this be a callback to creator of function/domain?
-	//	for refined access?
-};
-
-struct FGESEmitData
-{
-	bool bPinned;
-	FString Domain;
-	FString Event;
-	FProperty* Property;
-	void* PropertyPtr;
-	UObject* WorldContext;
-
-	//if we want a callback or pin emit
-	FGESEventListener* SpecificTarget;
-
-	FGESEmitData()
-	{
-		Property = nullptr;
-		PropertyPtr = nullptr;
-		SpecificTarget = nullptr;
-		WorldContext = nullptr;
-	}
-};
-
-struct FGESDynamicArg
-{
-	void* Arg01;
-};
-

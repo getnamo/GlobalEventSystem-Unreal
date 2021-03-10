@@ -175,7 +175,7 @@ void FGESHandler::AddListener(const FString& Domain, const FString& EventName, c
 	}
 }
 
-FString FGESHandler::AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(const FGESWildcardProperty&)> ReceivingLambda)
+FString FGESHandler::AddLambdaListener(FGESEventContext BindInfo, TFunction<void(const FGESWildcardProperty&)> ReceivingLambda)
 {
 	FGESEventListener Listener;
 	Listener.bIsBoundToLambda = true;
@@ -191,7 +191,7 @@ FString FGESHandler::AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(c
 	return Listener.FunctionName;
 }
 
-FString FGESHandler::AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(UStruct* Struct, void* StructPtr)> ReceivingLambda)
+FString FGESHandler::AddLambdaListener(FGESEventContext BindInfo, TFunction<void(UStruct* Struct, void* StructPtr)> ReceivingLambda)
 {
 	return AddLambdaListener(BindInfo,
 		[ReceivingLambda](const FGESWildcardProperty& Data)
@@ -208,7 +208,7 @@ FString FGESHandler::AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(U
 		});
 }
 
-FString FGESHandler::AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(const FString&)> ReceivingLambda)
+FString FGESHandler::AddLambdaListener(FGESEventContext BindInfo, TFunction<void(const FString&)> ReceivingLambda)
 {
 	return AddLambdaListener(BindInfo,
 		[ReceivingLambda](const FGESWildcardProperty& Data)
@@ -219,7 +219,7 @@ FString FGESHandler::AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(c
 		});
 }
 
-FString FGESHandler::AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(UObject*)> ReceivingLambda)
+FString FGESHandler::AddLambdaListener(FGESEventContext BindInfo, TFunction<void(UObject*)> ReceivingLambda)
 {
 	return AddLambdaListener(BindInfo,
 		[ReceivingLambda](const FGESWildcardProperty& Data)
@@ -230,7 +230,7 @@ FString FGESHandler::AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(U
 		});
 }
 
-FString FGESHandler::AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(float)> ReceivingLambda)
+FString FGESHandler::AddLambdaListener(FGESEventContext BindInfo, TFunction<void(float)> ReceivingLambda)
 {
 	return AddLambdaListener(BindInfo,
 		[ReceivingLambda](const FGESWildcardProperty& Data)
@@ -241,7 +241,7 @@ FString FGESHandler::AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(f
 		});
 }
 
-FString FGESHandler::AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(int32)> ReceivingLambda)
+FString FGESHandler::AddLambdaListener(FGESEventContext BindInfo, TFunction<void(int32)> ReceivingLambda)
 {
 	return AddLambdaListener(BindInfo,
 		[ReceivingLambda](const FGESWildcardProperty& Data)
@@ -253,7 +253,7 @@ FString FGESHandler::AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(i
 		});
 }
 
-FString FGESHandler::AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(bool)> ReceivingLambda)
+FString FGESHandler::AddLambdaListener(FGESEventContext BindInfo, TFunction<void(bool)> ReceivingLambda)
 {
 	return AddLambdaListener(BindInfo,
 		[ReceivingLambda](const FGESWildcardProperty& Data)
@@ -264,7 +264,7 @@ FString FGESHandler::AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(b
 		});
 }
 
-FString FGESHandler::AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(const FName&)> ReceivingLambda)
+FString FGESHandler::AddLambdaListener(FGESEventContext BindInfo, TFunction<void(const FName&)> ReceivingLambda)
 {
 	return AddLambdaListener(BindInfo,
 		[ReceivingLambda](const FGESWildcardProperty& Data)
@@ -275,7 +275,7 @@ FString FGESHandler::AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(c
 		});
 }
 
-FString FGESHandler::AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(void)> ReceivingLambda)
+FString FGESHandler::AddLambdaListener(FGESEventContext BindInfo, TFunction<void(void)> ReceivingLambda)
 {
 	return AddLambdaListener(BindInfo,
 		[ReceivingLambda](const FGESWildcardProperty& Data)
@@ -295,7 +295,7 @@ void FGESHandler::RemoveListener(const FString& Domain, const FString& Event, co
 	EventMap[KeyString].Listeners.Remove(Listener);
 }
 
-void FGESHandler::RemoveLambdaListener(FGESLambdaBind BindInfo, TFunction<void(const FGESWildcardProperty&)> ReceivingLambda)
+void FGESHandler::RemoveLambdaListener(FGESEventContext BindInfo, TFunction<void(const FGESWildcardProperty&)> ReceivingLambda)
 {
 	FGESEventListener Listener;
 	Listener.bIsBoundToLambda = true;
@@ -308,7 +308,7 @@ void FGESHandler::RemoveLambdaListener(FGESLambdaBind BindInfo, TFunction<void(c
 	RemoveListener(BindInfo.Domain, BindInfo.Event, Listener);
 }
 
-void FGESHandler::RemoveLambdaListener(FGESLambdaBind BindInfo, const FString& LambdaName)
+void FGESHandler::RemoveLambdaListener(FGESEventContext BindInfo, const FString& LambdaName)
 {
 	FGESEventListener Listener;
 	Listener.bIsBoundToLambda = true;
@@ -596,10 +596,19 @@ void FGESHandler::EmitEvent(const FGESEmitData& EmitData, const FName& ParamData
 
 bool FGESHandler::EmitEvent(const FGESEmitData& EmitData)
 {
-	if (EmitData.WorldContext && !EmitData.WorldContext->IsValidLowLevelFast() )
+	FGESFullEmitData FullEmitData;
+	FullEmitData.EmitData = EmitData;
+	//todo: process event into ptrs
+
+	return EmitProcessedEvent(FullEmitData);
+}
+
+bool FGESHandler::EmitProcessedEvent(const FGESFullEmitData& EmitData)
+{
+	if (EmitData.EmitData.WorldContext && !EmitData.EmitData.WorldContext->IsValidLowLevelFast())
 	{
 		//Remove this event, it's emit context is invalid
-		DeleteEvent(EmitData.Domain, EmitData.Event);
+		DeleteEvent(EmitData.EmitData.Domain, EmitData.EmitData.Event);
 		if (Options.bLogStaleRemovals)
 		{
 			UE_LOG(LogTemp, Log, TEXT("FGESHandler::EmitEvent stale event removed due to invalid world context. (Usually due to pinned events that haven't been unpinned."));
@@ -612,68 +621,68 @@ bool FGESHandler::EmitEvent(const FGESEmitData& EmitData)
 	//no params specified
 	if (ParameterProp == nullptr)
 	{
-		EmitToListenersWithData(EmitData, [&EmitData](const FGESEventListener& Listener)
-		{
-			//C++ lambda case
-			if (Listener.bIsBoundToLambda && Listener.LambdaFunction != nullptr)
+		EmitToListenersWithData(EmitData.EmitData, [&EmitData](const FGESEventListener& Listener)
 			{
-				FGESWildcardProperty Wrapper;
-				Wrapper.Property = EmitData.Property;
-				Wrapper.PropertyPtr = EmitData.PropertyPtr;
-				
-				Listener.LambdaFunction(Wrapper);
-				return;
-			}
-			//If the listener bound it to a wildcard event delegate, emit with nullptr
-			if (Listener.bIsBoundToDelegate)
-			{
-				FGESWildcardProperty Wrapper;
-				Wrapper.Property = EmitData.Property;
-				Wrapper.PropertyPtr = EmitData.PropertyPtr;
-				Listener.OnePropertyFunctionDelegate.ExecuteIfBound(Wrapper);
-				return;
-			}
-			
-			//Neither lambda nor wildcard delegate, process no param prop
-			TFieldIterator<FProperty> Iterator(Listener.Function);
+				//C++ lambda case
+				if (Listener.bIsBoundToLambda && Listener.LambdaFunction != nullptr)
+				{
+					FGESWildcardProperty Wrapper;
+					Wrapper.Property = EmitData.Property;
+					Wrapper.PropertyPtr = EmitData.PropertyPtr;
 
-			TArray<FProperty*> Properties;
-			while (Iterator && (Iterator->PropertyFlags & CPF_Parm))
-			{
-				FProperty* Prop = *Iterator;
-				Properties.Add(Prop);
-				++Iterator;
-			}
-			if (Properties.Num() == 0)
-			{
-				Listener.Receiver->ProcessEvent(Listener.Function, nullptr);
-			}
-			else
-			{
-				UE_LOG(LogTemp, Warning, TEXT("FGESHandler::EmitEvent %s tried to emit an empty event to %s receiver expecting parameters."), 
-					*EmitData.Event,
-					*Listener.Receiver->GetName());
-			}
-		});
+					Listener.LambdaFunction(Wrapper);
+					return;
+				}
+				//If the listener bound it to a wildcard event delegate, emit with nullptr
+				if (Listener.bIsBoundToDelegate)
+				{
+					FGESWildcardProperty Wrapper;
+					Wrapper.Property = EmitData.Property;
+					Wrapper.PropertyPtr = EmitData.PropertyPtr;
+					Listener.OnePropertyFunctionDelegate.ExecuteIfBound(Wrapper);
+					return;
+				}
+
+				//Neither lambda nor wildcard delegate, process no param prop
+				TFieldIterator<FProperty> Iterator(Listener.Function);
+
+				TArray<FProperty*> Properties;
+				while (Iterator && (Iterator->PropertyFlags & CPF_Parm))
+				{
+					FProperty* Prop = *Iterator;
+					Properties.Add(Prop);
+					++Iterator;
+				}
+				if (Properties.Num() == 0)
+				{
+					Listener.Receiver->ProcessEvent(Listener.Function, nullptr);
+				}
+				else
+				{
+					UE_LOG(LogTemp, Warning, TEXT("FGESHandler::EmitEvent %s tried to emit an empty event to %s receiver expecting parameters."),
+						*EmitData.Event,
+						*Listener.Receiver->GetName());
+				}
+			});
 	}
 	else if (ParameterProp->IsA<FStructProperty>())
 	{
 		FStructProperty* StructProperty = CastField<FStructProperty>(ParameterProp);
-		EmitEvent(EmitData, StructProperty->Struct, PropPtr);
+		EmitEvent(EmitData.EmitData, StructProperty->Struct, PropPtr);
 		return true;
 	}
 	else if (ParameterProp->IsA<FStrProperty>())
 	{
 		FStrProperty* StrProperty = CastField<FStrProperty>(ParameterProp);
 		FString Data = StrProperty->GetPropertyValue(PropPtr);
-		EmitEvent(EmitData, Data);
+		EmitEvent(EmitData.EmitData, Data);
 		return true;
 	}
 	else if (ParameterProp->IsA<FObjectProperty>())
 	{
 		FObjectProperty* ObjectProperty = CastField<FObjectProperty>(ParameterProp);
 		UObject* Data = ObjectProperty->GetPropertyValue(PropPtr);
-		EmitEvent(EmitData, Data);
+		EmitEvent(EmitData.EmitData, Data);
 		return true;
 	}
 	else if (ParameterProp->IsA<FNumericProperty>())
@@ -682,13 +691,13 @@ bool FGESHandler::EmitEvent(const FGESEmitData& EmitData)
 		if (NumericProperty->IsFloatingPoint())
 		{
 			double Data = NumericProperty->GetFloatingPointPropertyValue(PropPtr);
-			EmitEvent(EmitData, (float)Data);
+			EmitEvent(EmitData.EmitData, (float)Data);
 			return true;
 		}
 		else
 		{
 			int64 Data = NumericProperty->GetSignedIntPropertyValue(PropPtr);
-			EmitEvent(EmitData, (int32)Data);
+			EmitEvent(EmitData.EmitData, (int32)Data);
 			return true;
 		}
 	}
@@ -696,14 +705,14 @@ bool FGESHandler::EmitEvent(const FGESEmitData& EmitData)
 	{
 		FBoolProperty* BoolProperty = CastField<FBoolProperty>(ParameterProp);
 		bool Data = BoolProperty->GetPropertyValue(PropPtr);
-		EmitEvent(EmitData, Data);
+		EmitEvent(EmitData.EmitData, Data);
 		return true;
 	}
 	else if (ParameterProp->IsA<FNameProperty>())
 	{
 		FNameProperty* NameProperty = CastField<FNameProperty>(ParameterProp);
 		FName Data = NameProperty->GetPropertyValue(PropPtr);
-		EmitEvent(EmitData, Data);
+		EmitEvent(EmitData.EmitData, Data);
 		return true;
 	}
 	else

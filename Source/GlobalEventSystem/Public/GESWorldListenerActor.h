@@ -6,6 +6,10 @@
 #include "GameFramework/Actor.h"
 #include "GESWorldListenerActor.generated.h"
 
+/** 
+* An actor spawned per world by FGESHandler in order to track when the world
+* gets torn down and we have to remove all listeners for that world.
+*/
 UCLASS()
 class GLOBALEVENTSYSTEM_API AGESWorldListenerActor : public AActor
 {
@@ -15,7 +19,7 @@ public:
 	// Sets default values for this actor's properties
 	AGESWorldListenerActor();
 
-	//use to track when the world gets torn down
+	// Event to listen to in order to catch world ending
 	TFunction<void()> OnEndPlay;
 
 	TSet<FString> WorldEvents;

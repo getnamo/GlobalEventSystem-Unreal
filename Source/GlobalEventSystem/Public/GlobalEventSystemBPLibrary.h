@@ -100,7 +100,7 @@ class GLOBALEVENTSYSTEM_API UGlobalEventSystemBPLibrary : public UBlueprintFunct
 	DECLARE_FUNCTION(execGESEmitEventOneParam)
 	{
 		Stack.MostRecentProperty = nullptr;
-		FGESEmitData EmitData;
+		FGESFullEmitData EmitData;
 
 		Stack.StepCompiledIn<FObjectProperty>(&EmitData.WorldContext);
 
@@ -112,9 +112,9 @@ class GLOBALEVENTSYSTEM_API UGlobalEventSystemBPLibrary : public UBlueprintFunct
 		EmitData.Property = ParameterProp;
 		EmitData.PropertyPtr = PropPtr;
 
-		Stack.StepCompiledIn<FBoolProperty>(&EmitData.bPinned);
-		Stack.StepCompiledIn<FStrProperty>(&EmitData.Domain);
-		Stack.StepCompiledIn<FStrProperty>(&EmitData.Event);
+		Stack.StepCompiledIn<FBoolProperty>(&EmitData.EmitData.bPinned);
+		Stack.StepCompiledIn<FStrProperty>(&EmitData.EmitData.Domain);
+		Stack.StepCompiledIn<FStrProperty>(&EmitData.EmitData.Event);
 
 		P_FINISH;
 		P_NATIVE_BEGIN;

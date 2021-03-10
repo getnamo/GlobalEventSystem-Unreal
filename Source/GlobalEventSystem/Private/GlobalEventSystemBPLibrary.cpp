@@ -64,9 +64,9 @@ void UGlobalEventSystemBPLibrary::GESBindEventToWildcardDelegate(UObject* WorldC
 	FGESHandler::DefaultHandler()->AddListener(Domain, Event, Listener);
 }
 
-void UGlobalEventSystemBPLibrary::HandleEmit(const FGESEmitData& EmitData)
+void UGlobalEventSystemBPLibrary::HandleEmit(const FGESFullEmitData& FullEmitData)
 {
-	FGESHandler::DefaultHandler()->EmitEvent(EmitData);
+	FGESHandler::DefaultHandler()->EmitProcessedEvent(FullEmitData);
 }
 
 void UGlobalEventSystemBPLibrary::GESEmitEventOneParam(UObject* WorldContextObject, TFieldPath<FProperty> ParameterData, bool bPinned /*= false*/, const FString& Domain /*= TEXT("global.default")*/, const FString& Event /*= TEXT("")*/)

@@ -3,6 +3,7 @@
 #include "UObject/UnrealType.h"
 #include "GESWorldListenerActor.h"
 #include "GESDataTypes.h"
+#include "GESPrivateDataTypes.h"	//not very private yet
 
 /** 
 GESHandler Class usable in C++ with care. Private API may be a bit too exposed atm.
@@ -16,15 +17,18 @@ public:
 	static TSharedPtr<FGESHandler> DefaultHandler();
 
 	/**
-	*	Create an event in TargetDomain.TargetFunction. Does nothing if already existing
+	*	Create an event in TargetDomain.TargetFunction. Does nothing if already existing.
 	*/
 	void CreateEvent(const FString& Domain, const FString& Event, bool bPinned = false);
 	
 	/**
-	*	Delete an event in TargetDomain.TargetFunction. Does nothing if missing
+	*	Delete an event in TargetDomain.TargetFunction. Does nothing if missing.
 	*/
 	void DeleteEvent(const FString& Domain, const FString& Event);
 
+	/** 
+	*	Delete an event in with DomainAndEvent defined as a single string. Does nothing if missing.
+	*/
 	void DeleteEvent(const FString& DomainAndEvent);
 
 	/** 
@@ -45,7 +49,7 @@ public:
 	/**
 	*	Listen to an event in TargetDomain.TargetFunction via passed in lambda
 	*/
-	FString AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(const FGESWildcardProperty&)> ReceivingLambda);
+	FString AddLambdaListener(FGESEventContext EventInfo, TFunction<void(const FGESWildcardProperty&)> ReceivingLambda);
 	
 	/**
 	* Stop listening to an event in TargetDomain.TargetFunction
@@ -55,12 +59,12 @@ public:
 	/**
 	*	Listen to an event in TargetDomain.TargetFunction via passed in lambda
 	*/
-	void RemoveLambdaListener(FGESLambdaBind BindInfo, TFunction<void(const FGESWildcardProperty&)> ReceivingLambda);
+	void RemoveLambdaListener(FGESEventContext EventInfo, TFunction<void(const FGESWildcardProperty&)> ReceivingLambda);
 
 	/** 
 	*	Remove lambda by function id string. Used in case of lambdas without ref to initial function.
 	*/
-	void RemoveLambdaListener(FGESLambdaBind BindInfo, const FString& LambdaName);
+	void RemoveLambdaListener(FGESEventContext EventInfo, const FString& LambdaName);
 
 	/**
 	* Emit event in TargetDomain.TargetFunction with Struct type parameter data.
@@ -77,15 +81,18 @@ public:
 	void EmitEvent(const FGESEmitData& EmitData, const FName& ParamData);
 	bool EmitEvent(const FGESEmitData& EmitData);
 
+	//processed means the pointers have been filled
+	bool EmitProcessedEvent(const FGESFullEmitData& FullEmitData);
+
 	//overloaded lambda binds
-	FString AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(UStruct* Struct, void* StructPtr)> ReceivingLambda);
-	FString AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(const FString&)> ReceivingLambda);
-	FString AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(UObject*)> ReceivingLambda);
-	FString AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(float)> ReceivingLambda);
-	FString AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(int32)> ReceivingLambda);
-	FString AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(bool)> ReceivingLambda);
-	FString AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(const FName&)> ReceivingLambda);
-	FString AddLambdaListener(FGESLambdaBind BindInfo, TFunction<void(void)> ReceivingLambda);
+	FString AddLambdaListener(FGESEventContext EventInfo, TFunction<void(UStruct* Struct, void* StructPtr)> ReceivingLambda);
+	FString AddLambdaListener(FGESEventContext EventInfo, TFunction<void(const FString&)> ReceivingLambda);
+	FString AddLambdaListener(FGESEventContext EventInfo, TFunction<void(UObject*)> ReceivingLambda);
+	FString AddLambdaListener(FGESEventContext EventInfo, TFunction<void(float)> ReceivingLambda);
+	FString AddLambdaListener(FGESEventContext EventInfo, TFunction<void(int32)> ReceivingLambda);
+	FString AddLambdaListener(FGESEventContext EventInfo, TFunction<void(bool)> ReceivingLambda);
+	FString AddLambdaListener(FGESEventContext EventInfo, TFunction<void(const FName&)> ReceivingLambda);
+	FString AddLambdaListener(FGESEventContext EventInfo, TFunction<void(void)> ReceivingLambda);
 
 	/**
 	* Update global options

@@ -4,6 +4,7 @@
 
 #include "Components/ActorComponent.h"
 #include "GESDataTypes.h"
+#include "GESPrivateDataTypes.h"
 #include "GESBaseReceiverComponent.generated.h"
 
 /** Convenience base class for receiving GES events in an organized way for actors.*/
@@ -18,7 +19,7 @@ public:
 
 	//Domain, Event, and receiving function name
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "GES Receiver")
-	FGESLocalBind BindSettings;
+	FGESNameBind BindSettings;
 
 	//For polling after having received an event
 	UPROPERTY(BlueprintReadOnly, Category = "GES Receiver")
