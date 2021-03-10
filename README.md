@@ -114,7 +114,7 @@ Use _FGESHandler_ class to get static access to a default handler.
 Call functions on this handler to both emit and bind events.
 
 #### No param
-To emit a no-param event you specify FGESEmitData as first function parameter
+To emit a no-param event you specify an _FGESEmitData_ struct as the first function parameter
 
 ```c++
 //define emit contexts
@@ -129,8 +129,8 @@ FGESHandler::DefaultHandler()->EmitEvent(EmitData);
 
 #### One param
 
-For any other emit type with one parameter, you pass the parameter value as the second function parameter.
-Most common types are overloaded in _EmitEvent_.
+For any other emit type with one parameter, you pass the parameter value of choice as the second function parameter.
+Most common types are overloaded in _EmitEvent_. For multi-param and complex data types wrap or use a UStruct or UObject sub-class.
 
 ##### FString
 
@@ -215,7 +215,7 @@ FGESHandler::DefaultHandler()->EmitEvent(FCustomTestData::StaticStruct(), &EmitS
 
 ### Receive an event
 
-Recommended method is to use lambda receivers. Define an _FGESLambdaBind_ struct as the first param, then pass your overloaded lambda as the second type. NB: you can also alternatively organize your receivers with e.g. subclassing a _GESBaseReceiverComponent_ (for actor receivers only, not recommended over lambda receivers). 
+The recommended method is using lambda receivers. Define an _FGESLambdaBind_ struct as the first param, then pass your overloaded lambda as the second type. NB: you can also alternatively organize your receivers with e.g. subclassing a _GESBaseReceiverComponent_, but these are only applicable for actor owners and thus not recommended over lambda receivers in general. 
 
 #### No param event
 
@@ -345,12 +345,13 @@ FGESHandler::DefaultHandler()->AddLambdaListener(BindInfo, [this](UStruct* Struc
 ```
 
 #### Wildcard
-If you're not sure of the type of data you can receive, try a wildcard lambda and cast to test validity of data types. You'll need to add "#include "GlobalEventSystemBPLibrary.h" to use the conversion functions.
+If you're not sure of the type of data you can receive, try a wildcard lambda and cast to test validity of data types. You'll need to add ```"#include "GlobalEventSystemBPLibrary.h"``` to use the wildcard property conversion functions.
 
 ```c++
 ...
 FGESHandler::DefaultHandler()->AddLambdaListener(BindInfo, [this](const FGESWildcardProperty& WildcardProperty)
 {
+    //Let's try to decode a float
     float MaybeFloat;
     bool bDidGetFloat = UGlobalEventSystemBPLibrary::Conv_PropToFloat(WildcardProperty, MaybeFloat);
     if(bDidGetFloat)
@@ -359,6 +360,26 @@ FGESHandler::DefaultHandler()->AddLambdaListener(BindInfo, [this](const FGESWild
     }
 });
 ```
+
+#### Unbinding Events
+Each bound event function should unbind automatically when the world gets removed, but you can also unbind a lambda via the lambda name return you get when you bind the listener to the event.
+
+```c++
+...
+ 
+FString LambdaFunctionName = FGESHandler::DefaultHandler()->AddLambdaListener(BindInfo, [this]
+{
+    //handle receive
+});
+
+...
+
+//let's say we're done listening now
+FGESHandler::DefaultHandler()->RemoveLambdaListener(BindInfo, LambdaFunctionName);
+
+```
+
+Optionally you can also store the function and pass it instead of the lambda name to unbind it. Name method is preferred due to developers often defining anonymous functions inline when binding.
 
 ## When not to use GES
 - There are some performance considerations to keep in mind. While the overall architecture is fairly optimized, it can be more expensive than a simple function call due to function and type checking. Consider it appropriate for signaling more than a hammer to use everywhere.
