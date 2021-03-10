@@ -232,7 +232,7 @@ The recommended method is using lambda receivers. Define an _FGESEventContext_ s
 
 #### No param event
 
-Only the bind info is required. Use 'this' capture context in the lambda to enable calling e.g. member functions.
+Only the event context is required. Use 'this' capture context in the lambda to enable calling e.g. member functions (optional).
 
 ```c++
 FGESEventContext Context;
