@@ -79,11 +79,38 @@ NB: The struct property in the conversion node will appear gray until linked wit
 
 ## Unbinding
 
-Events automatically unbind on world end, but if you expect your receiver to last shorter than the world, consider unbinding the event, e.g. on it's _EndPlay_ call
+Events automatically unbind on world end, but if you expect your receiver to last shorter than the world, consider unbinding the event, e.g. on its _EndPlay_ call
 
 ![unbind](https://i.imgur.com/Qw3znMg.png)
 
 If you don't want to bookkeep events, consider using _GESBaseReceiverComponent_ sub-classed _ActorComponent_ receivers, which auto-unbind on endplay.
+
+## Examples
+
+Keep in mind that you can start using GES incrementally for specific tasks or parts of large projects instead of replacing too many parts at once. Below are some very basic examples where GES could be useful.
+
+### Cross-map reference pinning
+Let's say you had two actors in two different sub-maps and you wanted one actor to know that it has spawned from e.g. some dynamic process. Delay nodes shown below are only used to show example event delays due to e.g. async processing or waiting on something else to happen; not needed for function.
+
+![actor ready](https://i.imgur.com/BLUFoFs.png)
+
+In the spawned actor you could emit a reference to itself.
+
+![listen actor](https://i.imgur.com/IP0XTtC.png)
+
+and in the other actor you could bind to that event to do something with that information. Normally even without pinning this event should be received because you bind before you emit. But what if you couldn't control the delay?
+
+![delayed bind](https://i.imgur.com/UfQYsJa.png)
+
+This is the case where pinning the event would help as now when the receiving actor binds to the event, it will automatically receive the last emit even though it was called after the event was emitted. From a developer perspective you can now just handle the receiving logic and not worry about whether you need to add delays or loop through all actors in the map. By arranging your events to signal selectively and muxing those states you can ensure that the order of your events remains predictable; only start x when part y and z in the map have happened.
+
+### Flow muxing and loose coupling
+
+You can add a simple actor to the map which listens to various GES events. When for example two of those events have fired you can fire off another event which is a composite logic of the source events e.g. ANDGate or much more complex logic if we decide to use variable state.
+
+![](https://i.imgur.com/ickckJe.png)
+
+Blueprints which would listen to the SAReady event, don't even have to care where the source came from and you could easily swap out this logic actor for maybe another type without changing any other code; an example of the loose coupling enabled by GES. The actor is replaceable, there is no additional boilerplate that needs to be changed if replaced.
 
 ## Component Receivers - Organizing Events
 
@@ -118,33 +145,6 @@ You can then just add this component to all the actors that are interested in th
 There are some simple options to toggle some log messages and detailed struct type checking.
 
 ![options](https://i.imgur.com/22tC4lI.png)
-
-## Examples
-
-Keep in mind that you can start using GES incrementally for specific tasks or parts of large projects instead of replacing too many parts at once. Below are some very basic examples where GES could be useful.
-
-### Cross-map reference pinning
-Let's say you had two actors in two different sub-maps and you wanted one actor to know that it has spawned from e.g. some dynamic process. Delay nodes shown below are only used to show example event delays due to e.g. async processing or waiting on something else to happen; not needed for function.
-
-![actor ready](https://i.imgur.com/BLUFoFs.png)
-
-In the spawned actor you could emit a reference to itself.
-
-![listen actor](https://i.imgur.com/IP0XTtC.png)
-
-and in the other actor you could bind to that event to do something with that information. Normally even without pinning this event should be received because you bind before you emit. But what if you couldn't control the delay?
-
-![delayed bind](https://i.imgur.com/UfQYsJa.png)
-
-This is the case where pinning the event would help as now when the receiving actor binds to the event, it will automatically receive the last emit even though it was called after the event was emitted. From a developer perspective you can now just handle the receiving logic and not worry about whether you need to add delays or loop through all actors in the map. By arranging your events to signal selectively and muxing those states you can ensure that the order of your events remains predictable; only start x when part y and z in the map have happened.
-
-### Flow muxing and loose coupling
-
-You can add a simple actor to the map which listens to various GES events. When for example two of those events have fired you can fire off another event which is a composite logic of the source events e.g. ANDGate or much more complex logic if we decide to use variable state.
-
-![](https://i.imgur.com/ickckJe.png)
-
-Blueprints which would listen to the SAReady event, don't even have to care where the source came from and you could easily swap out this logic actor for maybe another type without changing any other code; an example of the loose coupling enabled by GES. The actor is replaceable, there is no additional boilerplate that needs to be changed if replaced.
 
 ## C++
 
