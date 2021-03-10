@@ -65,6 +65,12 @@ The final parameter is your local function name. This will be called on the grap
 
 Then make your custom event or blueprint function with a matching name and matching parameters.
 
+### Bind Event to Wildcard Delegate
+
+Instead of linking via function name, you can connect or make a wildcard property delegate (c++ type _FGESOnePropertySignature_).
+
+From that event you can try to convert your wildcard parameter into the types you want to receiver with a boolean specifying if the conversion was successful.
+
 ### Options
 
 There are some simple options to toggle some log messages and detailed struct type checking.
