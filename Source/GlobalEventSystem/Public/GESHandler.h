@@ -77,7 +77,7 @@ public:
 	bool EmitEvent(const FGESEmitContext& EmitData);
 
 	//processed means the pointers have been filled
-	bool EmitProcessedEvent(const FGESPropertyEmitContext& FullEmitData);
+	bool EmitPropertyEvent(const FGESPropertyEmitContext& FullEmitData);
 
 	//overloaded lambda binds
 	FString AddLambdaListener(FGESEventContext EventInfo, TFunction<void(UStruct* Struct, void* StructPtr)> ReceivingLambda);
@@ -105,9 +105,7 @@ public:
 private:
 	static TSharedPtr<FGESHandler> PrivateDefaultHandler;
 
-	/**
-	* Emit event in TargetDomain.TargetFunction with Struct type parameter data.
-	*/
+	//internal helper for in-context data filling for listeners
 	void EmitToListenersWithData(const FGESPropertyEmitContext& EmitData, TFunction<void(const FGESEventListener&)> DataFillCallback);
 
 	//can check function signature vs e.g. FString

@@ -66,7 +66,7 @@ void UGlobalEventSystemBPLibrary::GESBindEventToWildcardDelegate(UObject* WorldC
 
 void UGlobalEventSystemBPLibrary::HandleEmit(const FGESPropertyEmitContext& FullEmitData)
 {
-	FGESHandler::DefaultHandler()->EmitProcessedEvent(FullEmitData);
+	FGESHandler::DefaultHandler()->EmitPropertyEvent(FullEmitData);
 }
 
 void UGlobalEventSystemBPLibrary::GESEmitEventOneParam(UObject* WorldContextObject, TFieldPath<FProperty> ParameterData, bool bPinned /*= false*/, const FString& Domain /*= TEXT("global.default")*/, const FString& Event /*= TEXT("")*/)

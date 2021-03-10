@@ -37,6 +37,10 @@ FGESPropertyEmitContext::FGESPropertyEmitContext(const FGESEmitContext& Other)
 	Event = Other.Event;
 	WorldContext = Other.WorldContext;
 	bPinned = Other.bPinned;
+
+	Property = nullptr;
+	PropertyPtr = nullptr;
+	SpecificTarget = nullptr;
 }
 
 FGESEvent::FGESEvent(const FGESEmitContext& Other)
@@ -49,11 +53,11 @@ FGESEvent::FGESEvent(const FGESEmitContext& Other)
 
 FGESEventListener::FGESEventListener()
 {
-	bIsBoundToDelegate = false;
-	bIsBoundToLambda = false;
+	ReceiverWCO = nullptr;
 	FunctionName = TEXT("");
 	Function = nullptr;
-	ReceiverWCO = nullptr;
+	bIsBoundToDelegate = false;
+	bIsBoundToLambda = false;
 	LambdaFunction = nullptr;
 }
 

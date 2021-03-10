@@ -144,7 +144,7 @@ void FGESHandler::AddListener(const FString& Domain, const FString& EventName, c
 			EmitData.WorldContext = Event.WorldContext;
 			
 			//did we fail to emit?
-			if (!EmitEvent(EmitData))
+			if (!EmitPropertyEvent(EmitData))
 			{
 				//did the event get removed due to being stale? The listener may still be valid so re-run the listener loop
 				if (!HasEvent(Domain, EventName))
@@ -526,7 +526,19 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, UStruct* Struct, vo
 void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, const FString& ParamData)
 {
 	FString MutableParamString = ParamData;
-	EmitToListenersWithData(EmitData, [&EmitData, &MutableParamString](const FGESEventListener& Listener)
+	FGESPropertyEmitContext PropData(EmitData);
+
+	
+	FField* Field = FStrProperty::Construct(FFieldVariant(EmitData.WorldContext), TEXT("StringValue"), EObjectFlags::RF_Transient);
+	
+	FStrProperty* StrProperty = CastField<FStrProperty>(Field);
+	FString Out;
+	StrProperty->ImportText(*ParamData, &Out, 0, EmitData.WorldContext);
+
+	PropData.Property = StrProperty;
+	PropData.PropertyPtr = &Out;
+
+	EmitToListenersWithData(PropData, [&EmitData, &MutableParamString](const FGESEventListener& Listener)
 	{
 		if (FunctionHasValidParams(Listener.Function, FStrProperty::StaticClass(), EmitData, Listener))
 		{
@@ -599,10 +611,10 @@ bool FGESHandler::EmitEvent(const FGESEmitContext& EmitData)
 	FullEmitData = EmitData;
 	//todo: process event into ptrs
 
-	return EmitProcessedEvent(FullEmitData);
+	return EmitPropertyEvent(FullEmitData);
 }
 
-bool FGESHandler::EmitProcessedEvent(const FGESPropertyEmitContext& EmitData)
+bool FGESHandler::EmitPropertyEvent(const FGESPropertyEmitContext& EmitData)
 {
 	if (EmitData.WorldContext && !EmitData.WorldContext->IsValidLowLevelFast())
 	{
