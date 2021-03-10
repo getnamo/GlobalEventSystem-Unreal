@@ -237,29 +237,6 @@ FString FGESHandler::AddLambdaListener(FGESEventContext BindInfo, TFunction<void
 		});
 }
 
-FString FGESHandler::AddLambdaListener(FGESEventContext BindInfo, TFunction<void(int32)> ReceivingLambda)
-{
-	return AddLambdaListener(BindInfo,
-		[ReceivingLambda](const FGESWildcardProperty& Data)
-		{
-			int32 Value = 0;
-			UGlobalEventSystemBPLibrary::Conv_PropToInt(Data, Value);
-
-			ReceivingLambda(Value);
-		});
-}
-
-FString FGESHandler::AddLambdaListener(FGESEventContext BindInfo, TFunction<void(bool)> ReceivingLambda)
-{
-	return AddLambdaListener(BindInfo,
-		[ReceivingLambda](const FGESWildcardProperty& Data)
-		{
-			bool Value = false;
-			UGlobalEventSystemBPLibrary::Conv_PropToBool(Data, Value);
-			ReceivingLambda(Value);
-		});
-}
-
 FString FGESHandler::AddLambdaListener(FGESEventContext BindInfo, TFunction<void(const FName&)> ReceivingLambda)
 {
 	return AddLambdaListener(BindInfo,
@@ -277,6 +254,29 @@ FString FGESHandler::AddLambdaListener(FGESEventContext BindInfo, TFunction<void
 		[ReceivingLambda](const FGESWildcardProperty& Data)
 		{
 			ReceivingLambda();
+		});
+}
+
+FString FGESHandler::AddLambdaListenerInt(FGESEventContext EventInfo, TFunction<void(int32)> ReceivingLambda)
+{
+	return AddLambdaListener(EventInfo,
+		[ReceivingLambda](const FGESWildcardProperty& Data)
+		{
+			int32 Value = 0;
+			UGlobalEventSystemBPLibrary::Conv_PropToInt(Data, Value);
+
+			ReceivingLambda(Value);
+		});
+}
+
+FString FGESHandler::AddLambdaListenerBool(FGESEventContext EventInfo, TFunction<void(bool)> ReceivingLambda)
+{
+	return AddLambdaListener(EventInfo,
+		[ReceivingLambda](const FGESWildcardProperty& Data)
+		{
+			bool Value = false;
+			UGlobalEventSystemBPLibrary::Conv_PropToBool(Data, Value);
+			ReceivingLambda(Value);
 		});
 }
 
@@ -488,12 +488,31 @@ void FGESHandler::EmitToListenersWithData(const FGESPropertyEmitContext& EmitDat
 void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, UStruct* Struct, void* StructPtr)
 {
 	bool bValidateStructs = Options.bValidateStructTypes;
-	FGESPropertyEmitContext FullEmit(EmitData);
-	//TODO: fill
+	FGESPropertyEmitContext PropData(EmitData);
+	
+	//We have no property context, make a new property
+	FStructProperty* StructProperty =
+		new FStructProperty(FFieldVariant(EmitData.WorldContext),
+			TEXT("StructValue"),
+			EObjectFlags::RF_Transient,
+			0,
+			EPropertyFlags::CPF_Transient,
+			Cast<UScriptStruct>(Struct));
 
-	EmitToListenersWithData(EmitData, [&EmitData, Struct, StructPtr, bValidateStructs](const FGESEventListener& Listener)
+	//Wrap our FString into a buffer we can share
+	TArray<uint8> Buffer;
+	int32 Size = Struct->GetStructureSize();
+	Buffer.SetNum(Size);
+
+	//SetPropertyValue<FStructProperty>()
+	//StructProperty->Struct//(Buffer.GetData(), ParamData);
+
+	PropData.Property = StructProperty;
+	PropData.PropertyPtr = StructPtr;//Buffer.GetData();
+
+	EmitToListenersWithData(PropData, [&PropData, Struct, StructPtr, bValidateStructs](const FGESEventListener& Listener)
 	{
-		if (FunctionHasValidParams(Listener.Function, FStructProperty::StaticClass(), EmitData, Listener))
+		if (FunctionHasValidParams(Listener.Function, FStructProperty::StaticClass(), PropData, Listener))
 		{
 			if (bValidateStructs)
 			{
@@ -509,7 +528,7 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, UStruct* Struct, vo
 				else
 				{
 					UE_LOG(LogTemp, Warning, TEXT("FGESHandler::EmitEvent %s skipped listener %s due to function not having a matching Struct type %s signature."),
-						*EmitEventLogString(EmitData),
+						*EmitEventLogString(PropData),
 						*ListenerLogString(Listener),
 						*Struct->GetName());
 				}
@@ -521,6 +540,8 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, UStruct* Struct, vo
 			}
 		}
 	});
+
+	delete StructProperty;
 }
 
 void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, const FString& ParamData)
@@ -528,9 +549,6 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, const FString& Para
 	FGESPropertyEmitContext PropData(EmitData);
 
 	//We have no property context, make a new property
-	/*CastField<FStrProperty>(FStrProperty::Construct(FFieldVariant(EmitData.WorldContext),
-		TEXT("StringValue"),
-		EObjectFlags::RF_Transient));*/
 	FStrProperty* StrProperty = 
 		new FStrProperty(FFieldVariant(EmitData.WorldContext),
 			TEXT("StringValue"),
@@ -572,39 +590,82 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, UObject* ParamData)
 
 void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, float ParamData)
 {
-	EmitToListenersWithData(EmitData, [&EmitData, &ParamData](const FGESEventListener& Listener)
+	FGESPropertyEmitContext PropData(EmitData);
+
+	FFloatProperty* FloatProperty =
+		new FFloatProperty(FFieldVariant(EmitData.WorldContext),
+			TEXT("FloatValue"),
+			EObjectFlags::RF_Transient);
+
+	TArray<uint8> Buffer;
+	Buffer.SetNum(4);
+
+	FloatProperty->SetFloatingPointPropertyValue(Buffer.GetData(), ParamData);
+
+	PropData.Property = FloatProperty;
+	PropData.PropertyPtr = Buffer.GetData();
+
+	EmitToListenersWithData(PropData, [&PropData](const FGESEventListener& Listener)
 	{
-		if (FunctionHasValidParams(Listener.Function, FNumericProperty::StaticClass(), EmitData, Listener))
+		if (FunctionHasValidParams(Listener.Function, FNumericProperty::StaticClass(), PropData, Listener))
 		{
-			Listener.ReceiverWCO->ProcessEvent(Listener.Function, &ParamData);
+			Listener.ReceiverWCO->ProcessEvent(Listener.Function, PropData.PropertyPtr);
 		}
 	});
+
+	delete FloatProperty;
 }
 
 void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, int32 ParamData)
 {
-	EmitToListenersWithData(EmitData, [&EmitData, &ParamData](const FGESEventListener& Listener)
+	FGESPropertyEmitContext PropData(EmitData);
+
+	FNumericProperty* IntProperty =
+		new FNumericProperty(FFieldVariant(EmitData.WorldContext),
+			TEXT("IntValue"),
+			EObjectFlags::RF_Transient);
+
+	PropData.Property = IntProperty;
+	PropData.PropertyPtr = &ParamData;
+
+	EmitToListenersWithData(PropData, [&PropData](const FGESEventListener& Listener)
 	{
-		if (FunctionHasValidParams(Listener.Function, FNumericProperty::StaticClass(), EmitData, Listener))
+		if (FunctionHasValidParams(Listener.Function, FNumericProperty::StaticClass(), PropData, Listener))
 		{
-			Listener.ReceiverWCO->ProcessEvent(Listener.Function, &ParamData);
+			Listener.ReceiverWCO->ProcessEvent(Listener.Function, PropData.PropertyPtr);
 		}
 	});
+
+	delete IntProperty;
 }
 
 void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, bool ParamData)
 {
-	EmitToListenersWithData(EmitData, [&EmitData, &ParamData](const FGESEventListener& Listener)
+	FGESPropertyEmitContext PropData(EmitData);
+
+	FNumericProperty* BoolProperty =
+		new FNumericProperty(FFieldVariant(EmitData.WorldContext),
+			TEXT("BoolValue"),
+			EObjectFlags::RF_Transient);
+
+	PropData.Property = BoolProperty;
+	PropData.PropertyPtr = &ParamData;
+
+	EmitToListenersWithData(PropData, [&PropData](const FGESEventListener& Listener)
 	{
-		if (FunctionHasValidParams(Listener.Function, FBoolProperty::StaticClass(), EmitData, Listener))
+		if (FunctionHasValidParams(Listener.Function, FBoolProperty::StaticClass(), PropData, Listener))
 		{
-			Listener.ReceiverWCO->ProcessEvent(Listener.Function, &ParamData);
+			Listener.ReceiverWCO->ProcessEvent(Listener.Function, PropData.PropertyPtr);
 		}
 	});
+
+	delete BoolProperty;
 }
 
 void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, const FName& ParamData)
 {
+	//meh, later 
+
 	FName MutableName = ParamData;
 	EmitToListenersWithData(EmitData, [&EmitData, &ParamData, &MutableName](const FGESEventListener& Listener)
 	{
@@ -618,8 +679,8 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, const FName& ParamD
 bool FGESHandler::EmitEvent(const FGESEmitContext& EmitData)
 {
 	FGESPropertyEmitContext FullEmitData(EmitData);
-	//todo: process event into ptrs
 
+	//No param version
 	return EmitPropertyEvent(FullEmitData);
 }
 

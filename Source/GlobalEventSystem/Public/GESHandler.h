@@ -84,8 +84,8 @@ public:
 	FString AddLambdaListener(FGESEventContext EventInfo, TFunction<void(const FString&)> ReceivingLambda);
 	FString AddLambdaListener(FGESEventContext EventInfo, TFunction<void(UObject*)> ReceivingLambda);
 	FString AddLambdaListener(FGESEventContext EventInfo, TFunction<void(float)> ReceivingLambda);
-	FString AddLambdaListener(FGESEventContext EventInfo, TFunction<void(int32)> ReceivingLambda);
-	FString AddLambdaListener(FGESEventContext EventInfo, TFunction<void(bool)> ReceivingLambda);
+	FString AddLambdaListenerInt(FGESEventContext EventInfo, TFunction<void(int32)> ReceivingLambda);
+	FString AddLambdaListenerBool(FGESEventContext EventInfo, TFunction<void(bool)> ReceivingLambda);
 	FString AddLambdaListener(FGESEventContext EventInfo, TFunction<void(const FName&)> ReceivingLambda);
 	FString AddLambdaListener(FGESEventContext EventInfo, TFunction<void(void)> ReceivingLambda);
 
