@@ -73,10 +73,6 @@ bool FGESHandler::FunctionHasValidParams(UFunction* Function, FFieldClass* Class
 
 TSharedPtr<FGESHandler> FGESHandler::DefaultHandler()
 {
-	/*if (!FGESHandler::PrivateDefaultHandler.IsValid())
-	{
-		FGESHandler::PrivateDefaultHandler = MakeShareable(new FGESHandler());
-	}*/
 	return FGESHandler::PrivateDefaultHandler;
 }
 
