@@ -129,6 +129,22 @@ void FGESHandler::AddListener(const FString& Domain, const FString& EventName, c
 		FGESEvent& Event = EventMap[KeyString];
 		Event.Listeners.Add(Listener);
 
+		//TODO: check receivermap logic
+		FGESEventListenerWithContext ListenContext;
+		ListenContext.Domain = Domain;
+		ListenContext.Event = EventName;
+		FGESMinimalEventListener Minimal;
+		Minimal.FunctionName = Listener.FunctionName;
+		Minimal.ReceiverWCO = Listener.ReceiverWCO;
+		ListenContext.Listener = Minimal;
+
+		if (!ReceiverMap.Contains(Listener.ReceiverWCO))
+		{
+			TArray<FGESEventListenerWithContext> Array;
+			ReceiverMap.Add(Listener.ReceiverWCO, Array);
+		}
+		ReceiverMap[Listener.ReceiverWCO].Add(ListenContext);
+
 		//if it's pinned re-emit it immediately to this listener
 		if (Event.bPinned) 
 		{
@@ -146,7 +162,7 @@ void FGESHandler::AddListener(const FString& Domain, const FString& EventName, c
 			//did we fail to emit?
 			if (!EmitPropertyEvent(EmitData))
 			{
-				//did the event get removed due to being stale? The listener may still be valid so re-run the listener loop
+				//did the event get removed due to being stale? The listener may still be valid so re-run this add listener loop
 				if (!HasEvent(Domain, EventName))
 				{
 					AddListener(Domain, EventName, Listener);
@@ -171,18 +187,18 @@ void FGESHandler::AddListener(const FString& Domain, const FString& EventName, c
 	}
 }
 
-FString FGESHandler::AddLambdaListener(FGESEventContext BindInfo, TFunction<void(const FGESWildcardProperty&)> ReceivingLambda)
+FString FGESHandler::AddLambdaListener(FGESEventContext Context, TFunction<void(const FGESWildcardProperty&)> ReceivingLambda)
 {
 	FGESEventListener Listener;
 	Listener.bIsBoundToLambda = true;
 	Listener.LambdaFunction = ReceivingLambda;
-	Listener.ReceiverWCO = BindInfo.WorldContext;
+	Listener.ReceiverWCO = Context.WorldContext;
 
 	//name is derived from WCO + lambda pointer address
 	FString FunctionPtr = FString::Printf(TEXT("%d"), (void*)&ReceivingLambda);
 	Listener.FunctionName = Listener.ReceiverWCO->GetName() + TEXT(".lambda.") + FunctionPtr;
 
-	AddListener(BindInfo.Domain, BindInfo.Event, Listener);
+	AddListener(Context.Domain, Context.Event, Listener);
 
 	return Listener.FunctionName;
 }
@@ -288,7 +304,44 @@ void FGESHandler::RemoveListener(const FString& Domain, const FString& Event, co
 		UE_LOG(LogTemp, Warning, TEXT("FGESHandler::RemoveListener, tried to remove a listener from an event that doesn't exist. Ignored."));
 		return;
 	}
+
+	//Remove from main listener map
 	EventMap[KeyString].Listeners.Remove(Listener);
+
+	//Remove matched entry in receiver map
+	if (ReceiverMap.Contains(Listener.ReceiverWCO))
+	{
+		FGESEventListenerWithContext ContextListener;
+		ContextListener.Domain = Domain;
+		ContextListener.Event = Event;
+		ContextListener.Listener.FunctionName = Listener.FunctionName;
+		ContextListener.Listener.ReceiverWCO = Listener.ReceiverWCO;
+		ReceiverMap[Listener.ReceiverWCO].Remove(ContextListener);
+	}
+}
+
+void FGESHandler::RemoveAllListenersForReceiver(UObject* ReceiverWCO)
+{
+	if (!ReceiverMap.Contains(ReceiverWCO))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("FGESHandler::RemoveAllListenersForReceiver, tried to remove listeners from an WCO that doesn't exist. Ignored."));
+		return;
+	}
+
+	//Copy array so we can loop over
+	TArray<FGESEventListenerWithContext> ReceiverArray = ReceiverMap[ReceiverWCO];
+	
+	for (FGESEventListenerWithContext& ListenContext: ReceiverArray)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Trying to remove %s %d"), *ListenContext.Event, ReceiverWCO);
+		//FGESEventListener FullListener = ;
+		RemoveListener(ListenContext.Domain, ListenContext.Event, FGESEventListener(ListenContext.Listener));
+		UE_LOG(LogTemp, Log, TEXT("Done with %s %d"), *ListenContext.Event, ReceiverWCO);
+	}
+
+	ReceiverMap.Remove(ReceiverWCO);
+
+	UE_LOG(LogTemp, Log, TEXT("Fully done with %d"), ReceiverWCO);
 }
 
 void FGESHandler::RemoveLambdaListener(FGESEventContext BindInfo, TFunction<void(const FGESWildcardProperty&)> ReceivingLambda)
@@ -343,6 +396,10 @@ void FGESHandler::EmitToListenersWithData(const FGESPropertyEmitContext& EmitDat
 				DeleteEvent(EventKey);
 			}
 			WorldListener->WorldEvents.Empty();
+
+			//For now always clear receiver map if any world ends
+			ReceiverMap.Empty();
+
 			WorldMap.Remove(World);
 		};
 		WorldMap.Add(World, WorldListener);
@@ -603,6 +660,7 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, float ParamData)
 	//void* BufferPtr = FloatProperty->ContainerPtrToValuePtr<float>(&Buffer);
 	//FloatProperty->SetFloatingPointPropertyValue(BufferPtr.GetData(), ParamData);
 
+	//TODO: CONTINUE HERE WITH WRAPPING PROPERTIES AROUND RAW DATA
 
 	PropData.Property = FloatProperty;
 	PropData.PropertyPtr = &ParamData;// Buffer.GetData();

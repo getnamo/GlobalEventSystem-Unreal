@@ -66,6 +66,11 @@ public:
 	void RemoveListener(const FString& Domain, const FString& Event, const FGESEventListener& Listener);
 
 	/**
+	* Stop listening to all events for given receiver
+	*/
+	void RemoveAllListenersForReceiver(UObject* ReceiverWCO);
+
+	/**
 	*	Listen to an event in TargetDomain.TargetFunction via passed in lambda
 	*/
 	void RemoveLambdaListener(FGESEventContext EventInfo, TFunction<void(const FGESWildcardProperty&)> ReceivingLambda);
@@ -137,6 +142,7 @@ private:
 
 	//Key == TargetDomain.TargetFunction
 	TMap<FString, FGESEvent> EventMap;
+	TMap<UObject*, TArray<FGESEventListenerWithContext>> ReceiverMap;
 	TArray<FGESEventListener*> RemovalArray;
 
 	//Toggles

@@ -24,7 +24,19 @@ struct FGESDynamicArg
 };
 
 
-struct FGESEventListener
+struct FGESMinimalEventListener
+{
+	UObject* ReceiverWCO;	//WorldContextObject
+	FString FunctionName;
+
+	bool operator ==(FGESMinimalEventListener const& Other)
+	{
+		return (Other.ReceiverWCO == ReceiverWCO) && (Other.FunctionName == FunctionName);
+	}
+	FGESMinimalEventListener();
+};
+
+struct FGESEventListener : FGESMinimalEventListener
 {
 	//ReceiverTarget.FunctionName
 	UObject* ReceiverWCO;	//WorldContextObject
@@ -41,13 +53,31 @@ struct FGESEventListener
 	bool bIsBoundToLambda;
 	TFunction<void(const FGESWildcardProperty&)> LambdaFunction;
 
+	FGESEventListener(const FGESMinimalEventListener& Minimal);
 	FGESEventListener();
 	bool LinkFunction();
 	bool IsValidListener() const;
+};
 
-	bool operator ==(FGESEventListener const& Other)
+
+struct FGESEventListenerWithContext
+{
+	FGESMinimalEventListener Listener;
+	FString Domain;
+	FString Event;
+
+	FGESEventListenerWithContext()
 	{
-		return (Other.ReceiverWCO == ReceiverWCO) && (Other.FunctionName == FunctionName);
+		Domain = TEXT("");
+		Event = TEXT("");
+	}
+
+	bool operator ==(FGESEventListenerWithContext const& Other)
+	{
+		return (Other.Domain == Domain) && 
+			(Other.Event == Event) &&
+			(Listener.FunctionName == Other.Listener.FunctionName) &&
+			(Listener.ReceiverWCO == Other.Listener.ReceiverWCO);
 	}
 };
 

@@ -51,14 +51,25 @@ FGESEvent::FGESEvent(const FGESEmitContext& Other)
 	bPinned = Other.bPinned;
 }
 
-FGESEventListener::FGESEventListener()
+FGESMinimalEventListener::FGESMinimalEventListener()
 {
 	ReceiverWCO = nullptr;
 	FunctionName = TEXT("");
+}
+
+FGESEventListener::FGESEventListener()
+{
+	FGESMinimalEventListener();
 	Function = nullptr;
 	bIsBoundToDelegate = false;
 	bIsBoundToLambda = false;
 	LambdaFunction = nullptr;
+}
+
+FGESEventListener::FGESEventListener(const FGESMinimalEventListener& Minimal)
+{
+	ReceiverWCO = Minimal.ReceiverWCO;
+	FunctionName = Minimal.FunctionName;
 }
 
 bool FGESEventListener::LinkFunction()
@@ -69,5 +80,9 @@ bool FGESEventListener::LinkFunction()
 
 bool FGESEventListener::IsValidListener() const
 {
-	return (Function != nullptr || bIsBoundToDelegate || bIsBoundToLambda);
+	return (Function != nullptr || 
+		bIsBoundToDelegate ||
+		(bIsBoundToLambda && LambdaFunction != nullptr));
 }
+
+

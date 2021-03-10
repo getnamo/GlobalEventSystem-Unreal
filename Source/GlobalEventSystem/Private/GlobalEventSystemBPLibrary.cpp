@@ -17,6 +17,11 @@ void UGlobalEventSystemBPLibrary::GESUnbindEvent(UObject* WorldContextObject, co
 	FGESHandler::DefaultHandler()->RemoveListener(Domain, Event, Listener);
 }
 
+void UGlobalEventSystemBPLibrary::GESUnbindAllEventsForContext(UObject* WorldContextObject)
+{
+	FGESHandler::DefaultHandler()->RemoveAllListenersForReceiver(WorldContextObject);
+}
+
 void UGlobalEventSystemBPLibrary::GESUnbindWildcardDelegate(UObject* WorldContextObject, const FGESOnePropertySignature& ReceivingFunction, const FString& Domain /*= TEXT("global.default")*/, const FString& Event /*= TEXT("")*/)
 {
 	FGESEventListener Listener;
