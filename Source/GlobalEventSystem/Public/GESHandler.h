@@ -109,8 +109,6 @@ private:
 	void EmitToListenersWithData(const FGESPropertyEmitContext& EmitData, TFunction<void(const FGESEventListener&)> DataFillCallback);
 
 	//internal overloads
-	void EmitPropertyStructEvent(const FGESPropertyEmitContext& EmitData, UStruct* Struct, void* StructPtr);
-	void EmitObjectPropertyEvent(const FGESPropertyEmitContext& EmitData, UObject* ObjectPtr);
 	void EmitSubPropertyEvent(const FGESPropertyEmitContext& EmitData);
 
 	//can check function signature vs e.g. FString
