@@ -69,7 +69,9 @@ Then make your custom event or blueprint function with a matching name and match
 
 Instead of linking via function name, you can connect or make a wildcard property delegate (c++ type _FGESOnePropertySignature_).
 
-From that event you can try to convert your wildcard parameter into the types you want to receiver with a boolean specifying if the conversion was successful.
+![wildcard delegate](https://i.imgur.com/bOX2lve.png)
+
+You can then convert your received wildcard property to fixed types with a boolean indicator if the conversion was successful.
 
 ### Options
 
