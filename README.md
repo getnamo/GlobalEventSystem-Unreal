@@ -82,7 +82,7 @@ There are some simple options to toggle some log messages and detailed struct ty
 Keep in mind that you can start using GES incrementally for specific tasks or parts of large projects instead of replacing too many parts at once. Below are some very basic examples where GES could be useful.
 
 ### Cross-map reference pinning
-Let's say you had two actors in two different sub-maps and you wanted one actor to know that it has spawned from e.g. some dynamic process. Delay nodes shown below are only used to show example event delays due to e.g. async processing or waiting on something else to happend; not needed for function.
+Let's say you had two actors in two different sub-maps and you wanted one actor to know that it has spawned from e.g. some dynamic process. Delay nodes shown below are only used to show example event delays due to e.g. async processing or waiting on something else to happen; not needed for function.
 
 ![actor ready](https://i.imgur.com/BLUFoFs.png)
 In the spawned actor you could emit a reference to itself.
