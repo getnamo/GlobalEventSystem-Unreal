@@ -136,7 +136,7 @@ void FGESHandler::AddListener(const FString& Domain, const FString& EventName, c
 		//if it's pinned re-emit it immediately to this listener
 		if (Event.bPinned) 
 		{
-			FGESEmitData EmitData;
+			FGESFullEmitData EmitData;
 			
 			EmitData.Domain = Domain;
 			EmitData.Event = EventName;
@@ -318,7 +318,7 @@ void FGESHandler::RemoveLambdaListener(FGESEventContext BindInfo, const FString&
 	RemoveListener(BindInfo.Domain, BindInfo.Event, Listener);
 }
 
-void FGESHandler::EmitToListenersWithData(const FGESEmitData& EmitData, TFunction<void(const FGESEventListener&)> DataFillCallback)
+void FGESHandler::EmitToListenersWithData(const FGESFullEmitData& EmitData, TFunction<void(const FGESEventListener&)> DataFillCallback)
 {
 	FString KeyString = Key(EmitData.Domain, EmitData.Event);
 	if (!EventMap.Contains(KeyString))
@@ -334,7 +334,7 @@ void FGESHandler::EmitToListenersWithData(const FGESEmitData& EmitData, TFunctio
 		return;
 	}
 
-	UWorld* World = Event.WorldContext->GetWorld();
+	UWorld* World = EmitData.WorldContext->GetWorld();
 
 	//Attach a world listener to each unique world
 	if (!WorldMap.Contains(World))
@@ -359,7 +359,7 @@ void FGESHandler::EmitToListenersWithData(const FGESEmitData& EmitData, TFunctio
 	if (EmitData.Property)
 	{
 		//Warn if we're trying to pin a new event without unpinning old one
-		if (Event.bPinned && EmitData.bPinned)
+		if (EmitData.bPinned && EmitData.bPinned)
 		{
 			//cleanup if different
 			if (EmitData.Property != Event.PinnedData.Property ||
@@ -372,7 +372,7 @@ void FGESHandler::EmitToListenersWithData(const FGESEmitData& EmitData, TFunctio
 			Event.PinnedData.CopyPropertyToPinnedBuffer();
 			//UE_LOG(LogTemp, Warning, TEXT("FGESHandler::EmitToListenersWithData Emitted a pinned event to an already pinned event. Pinned data updated."));
 		}
-		if (!Event.bPinned && EmitData.bPinned)
+		if (!EmitData.bPinned && EmitData.bPinned)
 		{
 			Event.PinnedData.CleanupPinnedData();
 			Event.PinnedData.Property = EmitData.Property;
@@ -492,6 +492,9 @@ void FGESHandler::EmitToListenersWithData(const FGESEmitData& EmitData, TFunctio
 void FGESHandler::EmitEvent(const FGESEmitData& EmitData, UStruct* Struct, void* StructPtr)
 {
 	bool bValidateStructs = Options.bValidateStructTypes;
+	FGESFullEmitData FullEmit(EmitData);
+	//TODO: fill
+
 	EmitToListenersWithData(EmitData, [&EmitData, Struct, StructPtr, bValidateStructs](const FGESEventListener& Listener)
 	{
 		if (FunctionHasValidParams(Listener.Function, FStructProperty::StaticClass(), EmitData, Listener))
@@ -597,7 +600,7 @@ void FGESHandler::EmitEvent(const FGESEmitData& EmitData, const FName& ParamData
 bool FGESHandler::EmitEvent(const FGESEmitData& EmitData)
 {
 	FGESFullEmitData FullEmitData;
-	FullEmitData.EmitData = EmitData;
+	FullEmitData = EmitData;
 	//todo: process event into ptrs
 
 	return EmitProcessedEvent(FullEmitData);
@@ -605,10 +608,10 @@ bool FGESHandler::EmitEvent(const FGESEmitData& EmitData)
 
 bool FGESHandler::EmitProcessedEvent(const FGESFullEmitData& EmitData)
 {
-	if (EmitData.EmitData.WorldContext && !EmitData.EmitData.WorldContext->IsValidLowLevelFast())
+	if (EmitData.WorldContext && !EmitData.WorldContext->IsValidLowLevelFast())
 	{
 		//Remove this event, it's emit context is invalid
-		DeleteEvent(EmitData.EmitData.Domain, EmitData.EmitData.Event);
+		DeleteEvent(EmitData.Domain, EmitData.Event);
 		if (Options.bLogStaleRemovals)
 		{
 			UE_LOG(LogTemp, Log, TEXT("FGESHandler::EmitEvent stale event removed due to invalid world context. (Usually due to pinned events that haven't been unpinned."));
@@ -621,7 +624,7 @@ bool FGESHandler::EmitProcessedEvent(const FGESFullEmitData& EmitData)
 	//no params specified
 	if (ParameterProp == nullptr)
 	{
-		EmitToListenersWithData(EmitData.EmitData, [&EmitData](const FGESEventListener& Listener)
+		EmitToListenersWithData(EmitData, [&EmitData](const FGESEventListener& Listener)
 			{
 				//C++ lambda case
 				if (Listener.bIsBoundToLambda && Listener.LambdaFunction != nullptr)
@@ -668,21 +671,21 @@ bool FGESHandler::EmitProcessedEvent(const FGESFullEmitData& EmitData)
 	else if (ParameterProp->IsA<FStructProperty>())
 	{
 		FStructProperty* StructProperty = CastField<FStructProperty>(ParameterProp);
-		EmitEvent(EmitData.EmitData, StructProperty->Struct, PropPtr);
+		EmitEvent(EmitData, StructProperty->Struct, PropPtr);
 		return true;
 	}
 	else if (ParameterProp->IsA<FStrProperty>())
 	{
 		FStrProperty* StrProperty = CastField<FStrProperty>(ParameterProp);
 		FString Data = StrProperty->GetPropertyValue(PropPtr);
-		EmitEvent(EmitData.EmitData, Data);
+		EmitEvent(EmitData, Data);
 		return true;
 	}
 	else if (ParameterProp->IsA<FObjectProperty>())
 	{
 		FObjectProperty* ObjectProperty = CastField<FObjectProperty>(ParameterProp);
 		UObject* Data = ObjectProperty->GetPropertyValue(PropPtr);
-		EmitEvent(EmitData.EmitData, Data);
+		EmitEvent(EmitData, Data);
 		return true;
 	}
 	else if (ParameterProp->IsA<FNumericProperty>())
@@ -691,13 +694,13 @@ bool FGESHandler::EmitProcessedEvent(const FGESFullEmitData& EmitData)
 		if (NumericProperty->IsFloatingPoint())
 		{
 			double Data = NumericProperty->GetFloatingPointPropertyValue(PropPtr);
-			EmitEvent(EmitData.EmitData, (float)Data);
+			EmitEvent(EmitData, (float)Data);
 			return true;
 		}
 		else
 		{
 			int64 Data = NumericProperty->GetSignedIntPropertyValue(PropPtr);
-			EmitEvent(EmitData.EmitData, (int32)Data);
+			EmitEvent(EmitData, (int32)Data);
 			return true;
 		}
 	}
@@ -705,14 +708,14 @@ bool FGESHandler::EmitProcessedEvent(const FGESFullEmitData& EmitData)
 	{
 		FBoolProperty* BoolProperty = CastField<FBoolProperty>(ParameterProp);
 		bool Data = BoolProperty->GetPropertyValue(PropPtr);
-		EmitEvent(EmitData.EmitData, Data);
+		EmitEvent(EmitData, Data);
 		return true;
 	}
 	else if (ParameterProp->IsA<FNameProperty>())
 	{
 		FNameProperty* NameProperty = CastField<FNameProperty>(ParameterProp);
 		FName Data = NameProperty->GetPropertyValue(PropPtr);
-		EmitEvent(EmitData.EmitData, Data);
+		EmitEvent(EmitData, Data);
 		return true;
 	}
 	else

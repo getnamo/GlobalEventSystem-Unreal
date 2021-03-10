@@ -29,6 +29,8 @@ struct FGESEmitData
 	FString Event;
 	UObject* WorldContext;
 	bool bPinned;
+
+	FGESEmitData();
 };
 
 struct FGESEventListener
@@ -47,8 +49,8 @@ struct FGESEventListener
 	TFunction<void(const FGESWildcardProperty&)> LambdaFunction;
 
 
+	FGESEventListener();
 	bool LinkFunction();
-
 	bool IsValidListener() const;
 
 	bool operator ==(FGESEventListener const& Other)
@@ -57,23 +59,20 @@ struct FGESEventListener
 	}
 };
 
-struct FGESEvent
+struct FGESEvent : FGESEmitData
 {
-	FGESEmitData EmitData;
-
 	//If pinned an event will emit the moment you add a listener if it has been already fired once
 	FGESPinnedData PinnedData;
 
 	TArray<FGESEventListener> Listeners;
 
 	FGESEvent();
+	FGESEvent(const FGESEmitData& Other);
 };
 
 //With non-public derived data
-struct FGESFullEmitData
+struct FGESFullEmitData : FGESEmitData
 {
-	FGESEmitData EmitData;
-
 	FProperty* Property;
 	void* PropertyPtr;
 
@@ -81,4 +80,5 @@ struct FGESFullEmitData
 	FGESEventListener* SpecificTarget;
 
 	FGESFullEmitData();
+	FGESFullEmitData(const FGESEmitData& Other);
 };

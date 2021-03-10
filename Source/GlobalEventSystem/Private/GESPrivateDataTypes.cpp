@@ -29,7 +29,6 @@ FGESEmitData::FGESEmitData()
 
 FGESEvent::FGESEvent()
 {
-	EmitData = FGESEmitData();
 	PinnedData = FGESPinnedData();
 }
 
@@ -38,7 +37,22 @@ FGESFullEmitData::FGESFullEmitData()
 	Property = nullptr;
 	PropertyPtr = nullptr;
 	SpecificTarget = nullptr;
-	EmitData = FGESEmitData();
+}
+
+FGESFullEmitData::FGESFullEmitData(const FGESEmitData& Other)
+{
+	Domain = Other.Domain;
+	Event = Other.Event;
+	WorldContext = Other.WorldContext;
+	bPinned = Other.bPinned;
+}
+
+FGESEvent::FGESEvent(const FGESEmitData& Other)
+{
+	Domain = Other.Domain;
+	Event = Other.Event;
+	WorldContext = Other.WorldContext;
+	bPinned = Other.bPinned;
 }
 
 FGESEventListener::FGESEventListener()

@@ -69,7 +69,7 @@ public:
 	/**
 	* Emit event in TargetDomain.TargetFunction with Struct type parameter data.
 	*/
-	void EmitToListenersWithData(const FGESEmitData& EmitData, TFunction<void(const FGESEventListener&)> DataFillCallback);
+	void EmitToListenersWithData(const FGESFullEmitData& EmitData, TFunction<void(const FGESEventListener&)> DataFillCallback);
 
 	//overloaded emits
 	void EmitEvent(const FGESEmitData& EmitData, UStruct* Struct, void* StructPtr);

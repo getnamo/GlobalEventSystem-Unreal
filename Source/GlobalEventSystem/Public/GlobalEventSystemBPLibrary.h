@@ -112,9 +112,9 @@ class GLOBALEVENTSYSTEM_API UGlobalEventSystemBPLibrary : public UBlueprintFunct
 		EmitData.Property = ParameterProp;
 		EmitData.PropertyPtr = PropPtr;
 
-		Stack.StepCompiledIn<FBoolProperty>(&EmitData.EmitData.bPinned);
-		Stack.StepCompiledIn<FStrProperty>(&EmitData.EmitData.Domain);
-		Stack.StepCompiledIn<FStrProperty>(&EmitData.EmitData.Event);
+		Stack.StepCompiledIn<FBoolProperty>(&EmitData.bPinned);
+		Stack.StepCompiledIn<FStrProperty>(&EmitData.Domain);
+		Stack.StepCompiledIn<FStrProperty>(&EmitData.Event);
 
 		P_FINISH;
 		P_NATIVE_BEGIN;
@@ -150,7 +150,7 @@ class GLOBALEVENTSYSTEM_API UGlobalEventSystemBPLibrary : public UBlueprintFunct
 
 
 private:
-	static void HandleEmit(const FGESEmitData& EmitData);
+	static void HandleEmit(const FGESFullEmitData& EmitData);
 	static bool HandlePropToStruct(const FGESWildcardProperty& InProp, FGESWildcardProperty& FullProp);
 	//todo add support for array type props
 };
