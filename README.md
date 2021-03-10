@@ -332,7 +332,7 @@ struct FCustomTestData
 FGESHandler::DefaultHandler()->AddLambdaListener(BindInfo, [this](UStruct* Struct, void* StructPtr)
 {
     //Confirm matching struct
-			 if (Struct == FCustomTestData::StaticStruct())
+    if (Struct == FCustomTestData::StaticStruct())
     {
         //Deep copy your struct to local ref
 				    FCustomTestData TestData;
