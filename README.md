@@ -97,6 +97,269 @@ You can add a simple actor to the map which listens to various GES events. When 
 
 Blueprints which would listen to the SAReady event, don't even have to care where the source came from and you could easily swap out this logic actor for maybe another type without changing any other code; an example of the loose coupling enabled by GES. The actor is replaceable, there is no additional boilerplate that needs to be changed if replaced.
 
+## C++
+
+To use GES in C++, add ```"GlobalEventSystem"``` to your project Build.cs e.g.
+
+```PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "GlobalEventSystem" });```
+
+then in your implementation file of choice add the ```#include "GESHandler.h"``` header.
+
+### Emit an event
+
+Use _FGESHandler_ class to get static access to a default handler (or make your own, but that's usually not needed).
+
+```FGESHandler::DefaultHandler()```
+
+from there you can emit and bind events directly on the instance. 
+
+#### No param
+To emit a no-param event you specify FGESEmitData as first function parameter
+
+```c++
+//define emit contexts
+FGESEmitData EmitData;
+EmitData.Domain = TEXT("global.default");
+EmitData.Event = TEXT("MyEvent");
+EmitData.bPinned = true;      //whether the event state should be available after emit
+EmitData.WorldContext = this; //all GES events require a WorldContext object, typically this will be an actor or anything with a world.
+
+FGESHandler::DefaultHandler()->EmitEvent(EmitData);
+```
+
+#### One param
+
+For any other emit type with one parameter, you pass the parameter value as the second function parameter.
+Most common types are overloaded in _EmitEvent_.
+
+##### FString
+
+```c++
+...
+
+FString MyString = TEXT("MyStringData");
+FGESHandler::DefaultHandler()->EmitEvent(EmitData, MyString);
+```
+
+##### int32
+```c++
+...
+
+FGESHandler::DefaultHandler()->EmitEvent(EmitData, 5);
+```
+
+##### float
+```c++
+...
+
+FGESHandler::DefaultHandler()->EmitEvent(EmitData, 1.3);
+```
+
+##### bool
+
+```c++
+...
+
+FGESHandler::DefaultHandler()->EmitEvent(EmitData, true);
+```
+
+##### FName
+
+```c++
+...
+
+FName MyName = TEXT("my name");
+FGESHandler::DefaultHandler()->EmitEvent(EmitData, MyName);
+```
+
+##### UObject*
+```c++
+...
+
+UObject* SomeObject;
+
+FGESHandler::DefaultHandler()->EmitEvent(EmitData, SomeObject);
+```
+
+##### Struct
+
+```c++
+
+//Assuming e.g. this custom struct definition
+//NB : blueprint type declaration is optional, but will expose it to bp for easier receiving in that context
+USTRUCT(BlueprintType)
+struct FCustomTestData
+{
+    GENERATED_BODY()
+
+    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category= Test)
+    FString Name;
+
+    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Test)
+    int32 Index;
+
+    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Test)
+    TArray<float> Data;
+};
+
+...
+
+FCustomTestData EmitStruct;
+EmitStruct.Name = TEXT("Testy");
+EmitStruct.Index = 5;
+EmitStruct.Data = {1.2, 2.3};
+
+
+FGESHandler::DefaultHandler()->EmitEvent(FCustomTestData::StaticStruct(), &EmitStruct);
+```
+
+### Receive an event
+
+Recommended method is to use lambda receivers. Define an _FGESLambdaBind_ struct as the first param, then pass your overloaded lambda as the second type. NB: you can also alternatively organize your receivers with e.g. subclassing a _GESBaseReceiverComponent_ (for actor receivers only, not recommended over lambda receivers). 
+
+#### No param event
+
+Only the bind info is required. Use 'this' capture context in the lambda to enable calling e.g. member functions.
+
+```c++
+FGESLambdaBind BindInfo;
+BindInfo.Domain = TEXT("global.default");
+BindInfo.Event = TEXT("MyEvent");
+BindInfo.WorldContext = this;
+ 
+FGESHandler::DefaultHandler()->AddLambdaListener(BindInfo, [this]
+{
+    //handle receive
+});
+```
+
+#### FString param event
+
+```c++
+...
+
+FGESHandler::DefaultHandler()->AddLambdaListener(BindInfo, [this](const FString& StringData)
+{
+    //handle receive, e.g. log result
+    UE_LOG(LogTemp, Log, TEXT("Received %s"), *StringData);
+});
+```
+
+#### float param event
+
+```c++
+...
+
+FGESHandler::DefaultHandler()->AddLambdaListener(BindInfo, [this](float FloatData)
+{
+    //handle receive, e.g. log result
+    UE_LOG(LogTemp, Log, TEXT("Received %1.3f"), FloatData);
+});
+```
+
+#### int32 param event
+
+```c++
+...
+
+FGESHandler::DefaultHandler()->AddLambdaListener(BindInfo, [this](int32 IntData)
+{
+    //handle receive, e.g. log result
+    UE_LOG(LogTemp, Log, TEXT("Received %d"), IntData);
+});
+```
+
+#### bool param event
+
+```c++
+...
+
+FGESHandler::DefaultHandler()->AddLambdaListener(BindInfo, [this](bool BoolData)
+{
+    //handle receive, e.g. log result
+    UE_LOG(LogTemp, Log, TEXT("Received %d"), BoolData);
+});
+```
+
+#### FName param event
+
+```c++
+...
+
+FGESHandler::DefaultHandler()->AddLambdaListener(BindInfo, [this](const FName& NameData)
+{
+    //handle receive, e.g. log result
+    UE_LOG(LogTemp, Log, TEXT("Received %s"), *NameData.ToString());
+});
+```
+
+#### UObject* param event
+
+```c++
+...
+
+FGESHandler::DefaultHandler()->AddLambdaListener(BindInfo, [this](UObject* ObjectData)
+{
+    //handle receive, e.g. log result
+    UE_LOG(LogTemp, Log, TEXT("Received %s"), *ObjectData.GetName());
+});
+```
+
+#### Struct param event
+
+Structs need a deep copy to be readable.
+
+```c++
+
+//Assuming this custom struct
+USTRUCT(BlueprintType)
+struct FCustomTestData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category=Test)
+	FString Name;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Test)
+	int32 Index;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Test)
+	TArray<float> Data;
+};
+
+...
+
+FGESHandler::DefaultHandler()->AddLambdaListener(BindInfo, [this](UStruct* Struct, void* StructPtr)
+{
+    //Confirm matching struct
+			 if (Struct == FCustomTestData::StaticStruct())
+    {
+        //Deep copy your struct to local ref
+				    FCustomTestData TestData;
+				    TestData = *(FCustomTestData*)StructPtr;
+        
+				    //Test data is now usable
+			    	UE_LOG(LogTemp, Log, TEXT("Struct data: %s %d"), *TestData.Name, TestData.Data.Num());
+    }
+});
+```
+
+#### Wildcard
+If you're not sure of the type of data you can receive, try a wildcard lambda and cast to test validity of data types. You'll need to add "#include "GlobalEventSystemBPLibrary.h" to use the conversion functions.
+
+```c++
+...
+FGESHandler::DefaultHandler()->AddLambdaListener(BindInfo, [this](const FGESWildcardProperty& WildcardProperty)
+{
+    float MaybeFloat;
+    bool bDidGetFloat = UGlobalEventSystemBPLibrary::Conv_PropToFloat(WildcardProperty, MaybeFloat);
+    if(bDidGetFloat)
+    {
+        //good to go
+    }
+});
+```
+
 ## When not to use GES
 - There are some performance considerations to keep in mind. While the overall architecture is fairly optimized, it can be more expensive than a simple function call due to function and type checking. Consider it appropriate for signaling more than a hammer to use everywhere.
 
