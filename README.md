@@ -73,7 +73,7 @@ Instead of linking via function name, you can connect or make a wildcard propert
 
 You can then convert your received wildcard property to a fixed type with a boolean indicator if the conversion was successful. Below are the available conversion types.
 
-![other conversions](https://i.imgur.com/SPrUg3B.png)
+![other conversions](https://i.imgur.com/iOtaJTq.png)
 
 NB: The struct property in the conversion node will appear gray until linked with a local/member variable via e.g. a Set call.
 
