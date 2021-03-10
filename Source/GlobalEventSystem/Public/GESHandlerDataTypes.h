@@ -30,7 +30,13 @@ struct FGESEmitData
 	UObject* WorldContext;
 	bool bPinned;
 
-	FGESEmitData();
+	FGESEmitData()
+	{
+		Domain = TEXT("global.default");
+		Event = TEXT("");
+		WorldContext = nullptr;
+		bPinned = false;
+	}
 };
 
 struct FGESEventListener

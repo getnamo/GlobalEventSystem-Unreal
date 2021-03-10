@@ -1,4 +1,4 @@
-#include "GESPrivateDataTypes.h"
+#include "GESHandlerDataTypes.h"
 
 void FGESPinnedData::CopyPropertyToPinnedBuffer()
 {
@@ -17,14 +17,6 @@ void FGESPinnedData::CleanupPinnedData()
 	PropertyData.Empty();
 	Property = nullptr;
 	PropertyPtr = nullptr;
-}
-
-FGESEmitData::FGESEmitData()
-{
-	Domain = TEXT("global.default");
-	Event = TEXT("");
-	WorldContext = nullptr;
-	bPinned = false;
 }
 
 FGESEvent::FGESEvent()

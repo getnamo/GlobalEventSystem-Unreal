@@ -4,7 +4,7 @@
 
 #include "Components/ActorComponent.h"
 #include "GESDataTypes.h"
-#include "GESPrivateDataTypes.h"
+#include "GESHandlerDataTypes.h"
 #include "GESBaseReceiverComponent.generated.h"
 
 /** Convenience base class for receiving GES events in an organized way for actors.*/

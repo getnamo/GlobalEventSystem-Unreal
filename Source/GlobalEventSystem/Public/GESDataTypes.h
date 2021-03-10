@@ -44,7 +44,12 @@ struct FGESNameBind
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "GES Local Bind")
 	FString ReceivingFunction;
 
-	FGESNameBind();
+	FGESNameBind()
+	{
+		Domain = TEXT("global.default");
+		Event = TEXT("");
+		ReceivingFunction = TEXT("");
+	}
 };
 
 /** 
@@ -68,7 +73,12 @@ struct FGESEventContext
 	UPROPERTY()
 	UObject* WorldContext;
 
-	FGESEventContext();
+	FGESEventContext()
+	{
+		Domain = TEXT("global.default");
+		Event = TEXT("");
+		WorldContext = nullptr;
+	}
 };
 
 

@@ -3,7 +3,7 @@
 #include "UObject/UnrealType.h"
 #include "GESWorldListenerActor.h"
 #include "GESDataTypes.h"
-#include "GESPrivateDataTypes.h"	//not very private yet
+#include "GESHandlerDataTypes.h"	//not very private yet
 
 /** 
 GESHandler Class usable in C++ with care. Private API may be a bit too exposed atm.
