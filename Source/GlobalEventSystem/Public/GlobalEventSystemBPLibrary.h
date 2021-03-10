@@ -65,35 +65,35 @@ class GLOBALEVENTSYSTEM_API UGlobalEventSystemBPLibrary : public UBlueprintFunct
 	//Wildcard conversions, used in wildcard event delegates from GESBindEventToWildcardDelegate
 
 	/** Convert wildcard property into a literal int */
-	UFUNCTION(BlueprintPure, meta = (DisplayName = "To Integer (Wildcard Property)", BlueprintAutocast), Category = "Utilities|SocketIO")
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "To Integer (Wildcard Property)", BlueprintAutocast), Category = "Utilities|GES")
 	static bool Conv_PropToInt(const FGESWildcardProperty& InProp, int32& OutInt);
 
 	/** Convert wildcard property into a literal float */
-	UFUNCTION(BlueprintPure, meta = (DisplayName = "To Float (Wildcard Property)", BlueprintAutocast), Category = "Utilities|SocketIO")
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "To Float (Wildcard Property)", BlueprintAutocast), Category = "Utilities|GES")
 	static bool Conv_PropToFloat(const FGESWildcardProperty& InProp, float& OutFloat);
 
 	/** Convert wildcard property into a literal bool */
-	UFUNCTION(BlueprintPure, meta = (DisplayName = "To Bool (Wildcard Property)", BlueprintAutocast), Category = "Utilities|SocketIO")
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "To Bool (Wildcard Property)", BlueprintAutocast), Category = "Utilities|GES")
 	static bool Conv_PropToBool(const FGESWildcardProperty& InProp, bool& OutBool);
 
 	/** Convert wildcard property into a string (reference) */
-	UFUNCTION(BlueprintPure, meta = (DisplayName = "To String By Ref (Wildcard Property)", BlueprintAutocast), Category = "Utilities|SocketIO")
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "To String By Ref (Wildcard Property)", BlueprintAutocast), Category = "Utilities|GES")
 	static bool Conv_PropToStringRef(const FGESWildcardProperty& InProp, FString& OutString);
 
 	/** Will still warn, but won't return a boolean for conversion status, used for auto-casting to print strings for debugging */
-	UFUNCTION(BlueprintPure, meta = (DisplayName = "To String (Wildcard Property)", BlueprintAutocast), Category = "Utilities|SocketIO")
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "To String (Wildcard Property)", BlueprintAutocast), Category = "Utilities|GES")
 	static FString Conv_PropToString(const FGESWildcardProperty& InProp);
 
 	/** Convert wildcard property into a literal Name */
-	UFUNCTION(BlueprintPure, meta = (DisplayName = "To Name (Wildcard Property)", BlueprintAutocast), Category = "Utilities|SocketIO")
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "To Name (Wildcard Property)", BlueprintAutocast), Category = "Utilities|GES")
 	static bool Conv_PropToName(const FGESWildcardProperty& InProp, FName& OutName);
 
 	/** Convert wildcard property into any struct */
-	UFUNCTION(BlueprintPure, CustomThunk, meta = (DisplayName = "To Struct (Wildcard Property)", CustomStructureParam = "OutStruct", BlueprintAutocast), Category = "Utilities|SocketIO")
+	UFUNCTION(BlueprintPure, CustomThunk, meta = (DisplayName = "To Struct (Wildcard Property)", CustomStructureParam = "OutStruct", BlueprintAutocast), Category = "Utilities|GES")
 	static bool Conv_PropToStruct(const FGESWildcardProperty& InProp, TFieldPath<FProperty>& OutStruct);
 
 	/** Convert wildcard property into any Object */
-	UFUNCTION(BlueprintPure, meta = (DisplayName = "To Object (Wildcard Property)", BlueprintAutocast), Category = "Utilities|SocketIO")
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "To Object (Wildcard Property)", BlueprintAutocast), Category = "Utilities|GES")
 	static bool Conv_PropToObject(const FGESWildcardProperty& InProp, UObject*& OutObject);
 
 	//Convert property into c++ accessible form
