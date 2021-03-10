@@ -83,7 +83,7 @@ Events automatically unbind on world end, but if you expect your receiver to las
 
 ![unbind](https://i.imgur.com/Qw3znMg.png)
 
-If you don't want to bookkeep events, consider using a (GESBaseReceiverComponent)[https://github.com/getnamo/global-event-system-ue4/blob/feature-api-refactor/README.md#component-receivers---organizing-events] sub-classed _ActorComponent_ receivers, which auto-unbind on endplay.
+If you don't want to bookkeep events, consider using a [GESBaseReceiverComponent](https://github.com/getnamo/global-event-system-ue4/blob/feature-api-refactor/README.md#component-receivers---organizing-events) sub-classed _ActorComponent_ receivers, which auto-unbind on endplay.
 
 ## Examples
 
