@@ -3,7 +3,16 @@
 #include "UObject/UnrealType.h"
 #include "GESWorldListenerActor.h"
 #include "GESDataTypes.h"
-#include "GESHandlerDataTypes.h"	//not very private yet
+#include "GESHandlerDataTypes.h"
+
+//Text macro to handle TEXT("") emits
+#if !defined(GES_RAW_TEXT)
+	#if PLATFORM_TCHAR_IS_CHAR16
+		#define GES_RAW_TEXT char16_t*
+	#else
+		#define GES_RAW_TEXT wchar_t*
+	#endif
+#endif
 
 /** 
 GESHandler Class usable in C++ with care. Private API may be a bit too exposed atm.
@@ -75,6 +84,8 @@ public:
 	void EmitEvent(const FGESEmitContext& EmitData, bool ParamData);
 	void EmitEvent(const FGESEmitContext& EmitData, const FName& ParamData);
 	bool EmitEvent(const FGESEmitContext& EmitData);
+	//GES_RAW_TEXT supports passing in TEXT("") macros
+	void EmitEvent(const FGESEmitContext& EmitData, const GES_RAW_TEXT RawStringMessage);
 
 	//processed means the pointers have been filled
 	bool EmitPropertyEvent(const FGESPropertyEmitContext& FullEmitData);

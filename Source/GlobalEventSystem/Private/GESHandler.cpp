@@ -600,19 +600,18 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, float ParamData)
 	TArray<uint8> Buffer;
 	Buffer.SetNum(4);
 
-	void* BufferPtr = FloatProperty->ContainerPtrToValuePtr<float>(&Buffer);
-	FloatProperty->SetFloatingPointPropertyValue(BufferPtr, ParamData);
-
+	//void* BufferPtr = FloatProperty->ContainerPtrToValuePtr<float>(&Buffer);
+	//FloatProperty->SetFloatingPointPropertyValue(BufferPtr.GetData(), ParamData);
 
 
 	PropData.Property = FloatProperty;
-	PropData.PropertyPtr = Buffer.GetData();
+	PropData.PropertyPtr = &ParamData;// Buffer.GetData();
 
-	EmitToListenersWithData(PropData, [&PropData](const FGESEventListener& Listener)
+	EmitToListenersWithData(PropData, [&PropData, &ParamData](const FGESEventListener& Listener)
 	{
 		if (FunctionHasValidParams(Listener.Function, FNumericProperty::StaticClass(), PropData, Listener))
 		{
-			Listener.ReceiverWCO->ProcessEvent(Listener.Function, PropData.PropertyPtr);
+			Listener.ReceiverWCO->ProcessEvent(Listener.Function, &ParamData);// PropData.PropertyPtr);
 		}
 	});
 
@@ -685,6 +684,11 @@ bool FGESHandler::EmitEvent(const FGESEmitContext& EmitData)
 
 	//No param version
 	return EmitPropertyEvent(FullEmitData);
+}
+
+void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, const GES_RAW_TEXT RawStringMessage)
+{
+	EmitEvent(EmitData, FString(RawStringMessage));
 }
 
 bool FGESHandler::EmitPropertyEvent(const FGESPropertyEmitContext& EmitData)
