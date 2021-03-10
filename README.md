@@ -71,7 +71,8 @@ Instead of linking via function name, you can connect or make a wildcard propert
 
 ![wildcard delegate](https://i.imgur.com/bOX2lve.png)
 
-You can then convert your received wildcard property to a fixed type with a boolean indicator if the conversion was successful. Below are the available conversion types. 
+You can then convert your received wildcard property to a fixed type with a boolean indicator if the conversion was successful. Below are the available conversion types.
+
 ![other conversions](https://i.imgur.com/SPrUg3B.png)
 
 NB: The struct property in the conversion node will appear gray until linked with a local/member variable via e.g. a Set call.
@@ -90,6 +91,7 @@ Keep in mind that you can start using GES incrementally for specific tasks or pa
 Let's say you had two actors in two different sub-maps and you wanted one actor to know that it has spawned from e.g. some dynamic process. Delay nodes shown below are only used to show example event delays due to e.g. async processing or waiting on something else to happen; not needed for function.
 
 ![actor ready](https://i.imgur.com/BLUFoFs.png)
+
 In the spawned actor you could emit a reference to itself.
 
 ![listen actor](https://i.imgur.com/IP0XTtC.png)
