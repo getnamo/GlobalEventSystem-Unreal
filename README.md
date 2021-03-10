@@ -107,11 +107,11 @@ then in your implementation file of choice add the ```#include "GESHandler.h"```
 
 ### Emit an event
 
-Use _FGESHandler_ class to get static access to a default handler (or make your own, but that's usually not needed).
+Use _FGESHandler_ class to get static access to a default handler.
 
 ```FGESHandler::DefaultHandler()```
 
-from there you can emit and bind events directly on the instance. 
+Call functions on this handler to both emit and bind events.
 
 #### No param
 To emit a no-param event you specify FGESEmitData as first function parameter
