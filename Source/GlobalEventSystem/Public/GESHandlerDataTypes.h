@@ -23,37 +23,23 @@ struct FGESDynamicArg
 	void* Arg01;
 };
 
-struct FGESEmitData
-{
-	FString Domain;
-	FString Event;
-	UObject* WorldContext;
-	bool bPinned;
-
-	FGESEmitData()
-	{
-		Domain = TEXT("global.default");
-		Event = TEXT("");
-		WorldContext = nullptr;
-		bPinned = false;
-	}
-};
 
 struct FGESEventListener
 {
-	UObject* Receiver;	//Used for world context
+	//ReceiverTarget.FunctionName
+	UObject* ReceiverWCO;	//WorldContextObject
 	FString FunctionName;
 
-	/** Bound UFunction, valid after calling LinkFunction*/
+	// Opt A) Bound UFunction, valid after calling LinkFunction
 	UFunction* Function;
 
-	//Optionally we could be using an event delegate
+	// Opt B) Bound to a delegate
 	bool bIsBoundToDelegate;
 	FGESOnePropertySignature OnePropertyFunctionDelegate;
 
+	// Opt C) Bound to a lambda function
 	bool bIsBoundToLambda;
 	TFunction<void(const FGESWildcardProperty&)> LambdaFunction;
-
 
 	FGESEventListener();
 	bool LinkFunction();
@@ -61,11 +47,12 @@ struct FGESEventListener
 
 	bool operator ==(FGESEventListener const& Other)
 	{
-		return (Other.Receiver == Receiver) && (Other.FunctionName == FunctionName);
+		return (Other.ReceiverWCO == ReceiverWCO) && (Other.FunctionName == FunctionName);
 	}
 };
 
-struct FGESEvent : FGESEmitData
+//Event specialization with pinned and listener data
+struct FGESEvent : FGESEmitContext
 {
 	//If pinned an event will emit the moment you add a listener if it has been already fired once
 	FGESPinnedData PinnedData;
@@ -73,11 +60,11 @@ struct FGESEvent : FGESEmitData
 	TArray<FGESEventListener> Listeners;
 
 	FGESEvent();
-	FGESEvent(const FGESEmitData& Other);
+	FGESEvent(const FGESEmitContext& Other);
 };
 
-//With non-public derived data
-struct FGESFullEmitData : FGESEmitData
+//Emit specialization with property pointers
+struct FGESPropertyEmitContext : FGESEmitContext
 {
 	FProperty* Property;
 	void* PropertyPtr;
@@ -85,6 +72,6 @@ struct FGESFullEmitData : FGESEmitData
 	//NB: if we want a callback or pin emit
 	FGESEventListener* SpecificTarget;
 
-	FGESFullEmitData();
-	FGESFullEmitData(const FGESEmitData& Other);
+	FGESPropertyEmitContext();
+	FGESPropertyEmitContext(const FGESEmitContext& Other);
 };

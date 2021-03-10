@@ -11,7 +11,7 @@ UGlobalEventSystemBPLibrary::UGlobalEventSystemBPLibrary(const FObjectInitialize
 void UGlobalEventSystemBPLibrary::GESUnbindEvent(UObject* WorldContextObject, const FString& Domain /*= TEXT("global.default")*/, const FString& Event /*= TEXT("")*/, const FString& ReceivingFunction /*= TEXT("")*/)
 {
 	FGESEventListener Listener;
-	Listener.Receiver = WorldContextObject;
+	Listener.ReceiverWCO = WorldContextObject;
 	Listener.FunctionName = ReceivingFunction;
 
 	FGESHandler::DefaultHandler()->RemoveListener(Domain, Event, Listener);
@@ -20,7 +20,7 @@ void UGlobalEventSystemBPLibrary::GESUnbindEvent(UObject* WorldContextObject, co
 void UGlobalEventSystemBPLibrary::GESUnbindWildcardDelegate(UObject* WorldContextObject, const FGESOnePropertySignature& ReceivingFunction, const FString& Domain /*= TEXT("global.default")*/, const FString& Event /*= TEXT("")*/)
 {
 	FGESEventListener Listener;
-	Listener.Receiver = WorldContextObject;
+	Listener.ReceiverWCO = WorldContextObject;
 
 	if (ReceivingFunction.GetUObject()->IsValidLowLevelFast())
 	{
@@ -39,7 +39,7 @@ void UGlobalEventSystemBPLibrary::GESUnbindWildcardDelegate(UObject* WorldContex
 void UGlobalEventSystemBPLibrary::GESBindEvent(UObject* WorldContextObject, const FString& Domain /*= TEXT("global.default")*/, const FString& Event /*= TEXT("")*/, const FString& ReceivingFunction /*= TEXT("")*/)
 {
 	FGESEventListener Listener;
-	Listener.Receiver = WorldContextObject;
+	Listener.ReceiverWCO = WorldContextObject;
 	Listener.FunctionName = ReceivingFunction;
 	Listener.LinkFunction();	//this makes the function valid by finding a reference to it
 
@@ -49,7 +49,7 @@ void UGlobalEventSystemBPLibrary::GESBindEvent(UObject* WorldContextObject, cons
 void UGlobalEventSystemBPLibrary::GESBindEventToWildcardDelegate(UObject* WorldContextObject, const FGESOnePropertySignature& ReceivingFunction, const FString& Domain /*= TEXT("global.default")*/, const FString& Event /*= TEXT("")*/)
 {
 	FGESEventListener Listener;
-	Listener.Receiver = WorldContextObject;
+	Listener.ReceiverWCO = WorldContextObject;
 	if (ReceivingFunction.GetUObject()->IsValidLowLevelFast())
 	{
 		Listener.FunctionName = WorldContextObject->GetName() + ReceivingFunction.GetUObject()->GetName();
@@ -64,7 +64,7 @@ void UGlobalEventSystemBPLibrary::GESBindEventToWildcardDelegate(UObject* WorldC
 	FGESHandler::DefaultHandler()->AddListener(Domain, Event, Listener);
 }
 
-void UGlobalEventSystemBPLibrary::HandleEmit(const FGESFullEmitData& FullEmitData)
+void UGlobalEventSystemBPLibrary::HandleEmit(const FGESPropertyEmitContext& FullEmitData)
 {
 	FGESHandler::DefaultHandler()->EmitProcessedEvent(FullEmitData);
 }
@@ -76,7 +76,7 @@ void UGlobalEventSystemBPLibrary::GESEmitEventOneParam(UObject* WorldContextObje
 
 void UGlobalEventSystemBPLibrary::GESEmitEvent(UObject* WorldContextObject, bool bPinned /*= false*/, const FString& Domain /*= TEXT("global.default")*/, const FString& EventName /*= TEXT("")*/)
 {
-	FGESEmitData EmitData;
+	FGESEmitContext EmitData;
 	EmitData.bPinned = bPinned;
 	EmitData.Domain = Domain;
 	EmitData.Event = EventName;

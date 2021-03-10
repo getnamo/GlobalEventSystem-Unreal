@@ -81,6 +81,24 @@ struct FGESEventContext
 	}
 };
 
+USTRUCT()
+struct FGESEmitContext : public FGESEventContext
+{
+	GENERATED_BODY()
+
+	/** Pinned means an emitted event state should be accessible after it has been emitted. */
+	UPROPERTY()
+	bool bPinned;
+
+	FGESEmitContext()
+	{
+		Domain = TEXT("global.default");
+		Event = TEXT("");
+		WorldContext = nullptr;
+		bPinned = false;
+	}
+};
+
 
 /** 
 * Wrapper struct for a wildcard property. Allows directly binding GES events to

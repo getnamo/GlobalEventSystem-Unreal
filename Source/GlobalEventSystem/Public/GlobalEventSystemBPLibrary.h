@@ -100,7 +100,7 @@ class GLOBALEVENTSYSTEM_API UGlobalEventSystemBPLibrary : public UBlueprintFunct
 	DECLARE_FUNCTION(execGESEmitEventOneParam)
 	{
 		Stack.MostRecentProperty = nullptr;
-		FGESFullEmitData EmitData;
+		FGESPropertyEmitContext EmitData;
 
 		Stack.StepCompiledIn<FObjectProperty>(&EmitData.WorldContext);
 
@@ -150,7 +150,7 @@ class GLOBALEVENTSYSTEM_API UGlobalEventSystemBPLibrary : public UBlueprintFunct
 
 
 private:
-	static void HandleEmit(const FGESFullEmitData& EmitData);
+	static void HandleEmit(const FGESPropertyEmitContext& EmitData);
 	static bool HandlePropToStruct(const FGESWildcardProperty& InProp, FGESWildcardProperty& FullProp);
 	//todo add support for array type props
 };

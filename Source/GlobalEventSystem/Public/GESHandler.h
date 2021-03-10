@@ -66,23 +66,18 @@ public:
 	*/
 	void RemoveLambdaListener(FGESEventContext EventInfo, const FString& LambdaName);
 
-	/**
-	* Emit event in TargetDomain.TargetFunction with Struct type parameter data.
-	*/
-	void EmitToListenersWithData(const FGESFullEmitData& EmitData, TFunction<void(const FGESEventListener&)> DataFillCallback);
-
 	//overloaded emits
-	void EmitEvent(const FGESEmitData& EmitData, UStruct* Struct, void* StructPtr);
-	void EmitEvent(const FGESEmitData& EmitData, const FString& ParamData);
-	void EmitEvent(const FGESEmitData& EmitData, UObject* ParamData);
-	void EmitEvent(const FGESEmitData& EmitData, float ParamData);
-	void EmitEvent(const FGESEmitData& EmitData, int32 ParamData);
-	void EmitEvent(const FGESEmitData& EmitData, bool ParamData);
-	void EmitEvent(const FGESEmitData& EmitData, const FName& ParamData);
-	bool EmitEvent(const FGESEmitData& EmitData);
+	void EmitEvent(const FGESEmitContext& EmitData, UStruct* Struct, void* StructPtr);
+	void EmitEvent(const FGESEmitContext& EmitData, const FString& ParamData);
+	void EmitEvent(const FGESEmitContext& EmitData, UObject* ParamData);
+	void EmitEvent(const FGESEmitContext& EmitData, float ParamData);
+	void EmitEvent(const FGESEmitContext& EmitData, int32 ParamData);
+	void EmitEvent(const FGESEmitContext& EmitData, bool ParamData);
+	void EmitEvent(const FGESEmitContext& EmitData, const FName& ParamData);
+	bool EmitEvent(const FGESEmitContext& EmitData);
 
 	//processed means the pointers have been filled
-	bool EmitProcessedEvent(const FGESFullEmitData& FullEmitData);
+	bool EmitProcessedEvent(const FGESPropertyEmitContext& FullEmitData);
 
 	//overloaded lambda binds
 	FString AddLambdaListener(FGESEventContext EventInfo, TFunction<void(UStruct* Struct, void* StructPtr)> ReceivingLambda);
@@ -110,16 +105,21 @@ public:
 private:
 	static TSharedPtr<FGESHandler> PrivateDefaultHandler;
 
+	/**
+	* Emit event in TargetDomain.TargetFunction with Struct type parameter data.
+	*/
+	void EmitToListenersWithData(const FGESPropertyEmitContext& EmitData, TFunction<void(const FGESEventListener&)> DataFillCallback);
+
 	//can check function signature vs e.g. FString
 	static bool FirstParamIsCppType(UFunction* Function, const FString& TypeString);
 	static bool FirstParamIsSubclassOf(UFunction* Function, FFieldClass* ClassType);
 	static FString ListenerLogString(const FGESEventListener& Listener);
 	static FString EventLogString(const FGESEvent& Event);
-	static FString EmitEventLogString(const FGESEmitData& EmitData);
+	static FString EmitEventLogString(const FGESEmitContext& EmitData);
 	static void FunctionParameters(UFunction* Function, TArray<FProperty*>& OutParamProperties);
 
 	//this function logs warnings otherwise
-	static bool FunctionHasValidParams(UFunction* Function, FFieldClass* ClassType, const FGESEmitData& EmitData, const FGESEventListener& Listener);
+	static bool FunctionHasValidParams(UFunction* Function, FFieldClass* ClassType, const FGESEmitContext& EmitData, const FGESEventListener& Listener);
 
 	//Key == TargetDomain.TargetFunction
 	TMap<FString, FGESEvent> EventMap;

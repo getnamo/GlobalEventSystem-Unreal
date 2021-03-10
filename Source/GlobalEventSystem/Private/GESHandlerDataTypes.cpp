@@ -24,14 +24,14 @@ FGESEvent::FGESEvent()
 	PinnedData = FGESPinnedData();
 }
 
-FGESFullEmitData::FGESFullEmitData()
+FGESPropertyEmitContext::FGESPropertyEmitContext()
 {
 	Property = nullptr;
 	PropertyPtr = nullptr;
 	SpecificTarget = nullptr;
 }
 
-FGESFullEmitData::FGESFullEmitData(const FGESEmitData& Other)
+FGESPropertyEmitContext::FGESPropertyEmitContext(const FGESEmitContext& Other)
 {
 	Domain = Other.Domain;
 	Event = Other.Event;
@@ -39,7 +39,7 @@ FGESFullEmitData::FGESFullEmitData(const FGESEmitData& Other)
 	bPinned = Other.bPinned;
 }
 
-FGESEvent::FGESEvent(const FGESEmitData& Other)
+FGESEvent::FGESEvent(const FGESEmitContext& Other)
 {
 	Domain = Other.Domain;
 	Event = Other.Event;
@@ -53,13 +53,13 @@ FGESEventListener::FGESEventListener()
 	bIsBoundToLambda = false;
 	FunctionName = TEXT("");
 	Function = nullptr;
-	Receiver = nullptr;
+	ReceiverWCO = nullptr;
 	LambdaFunction = nullptr;
 }
 
 bool FGESEventListener::LinkFunction()
 {
-	Function = Receiver->FindFunction(FName(*FunctionName));
+	Function = ReceiverWCO->FindFunction(FName(*FunctionName));
 	return IsValidListener();
 }
 
