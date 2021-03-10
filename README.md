@@ -114,17 +114,17 @@ Use _FGESHandler_ class to get static access to a default handler.
 Call functions on this handler to both emit and bind events.
 
 #### No param
-To emit a no-param event you specify an _FGESEmitData_ struct as the first function parameter
+To emit a no-param event you specify an _FGESEmitContext_ struct as the first function parameter
 
 ```c++
 //define emit contexts
-FGESEmitData EmitData;
-EmitData.Domain = TEXT("global.default");
-EmitData.Event = TEXT("MyEvent");
-EmitData.bPinned = true;      //whether the event state should be available after emit
-EmitData.WorldContext = this; //all GES events require a WorldContext object, typically this will be an actor or anything with a world.
+FGESEmitContext Context;
+Context.Domain = TEXT("global.default");
+Context.Event = TEXT("MyEvent");
+Context.bPinned = true;      //whether the event state should be available after emit
+Context.WorldContext = this; //all GES events require a WorldContext object, typically this will be an actor or anything with a world.
 
-FGESHandler::DefaultHandler()->EmitEvent(EmitData);
+FGESHandler::DefaultHandler()->EmitEvent(Context);
 ```
 
 #### One param
@@ -138,21 +138,28 @@ Most common types are overloaded in _EmitEvent_. For multi-param and complex dat
 ...
 
 FString MyString = TEXT("MyStringData");
-FGESHandler::DefaultHandler()->EmitEvent(EmitData, MyString);
+FGESHandler::DefaultHandler()->EmitEvent(Context, MyString);
+```
+
+or you can emit string literals via
+
+```c++
+...
+FGESHandler::DefaultHandler()->EmitEvent(Context, TEXT("MyStringData"));
 ```
 
 ##### int32
 ```c++
 ...
 
-FGESHandler::DefaultHandler()->EmitEvent(EmitData, 5);
+FGESHandler::DefaultHandler()->EmitEvent(Context, 5);
 ```
 
 ##### float
 ```c++
 ...
 
-FGESHandler::DefaultHandler()->EmitEvent(EmitData, 1.3);
+FGESHandler::DefaultHandler()->EmitEvent(Context, 1.3);
 ```
 
 ##### bool
@@ -160,7 +167,7 @@ FGESHandler::DefaultHandler()->EmitEvent(EmitData, 1.3);
 ```c++
 ...
 
-FGESHandler::DefaultHandler()->EmitEvent(EmitData, true);
+FGESHandler::DefaultHandler()->EmitEvent(Context, true);
 ```
 
 ##### FName
@@ -169,7 +176,7 @@ FGESHandler::DefaultHandler()->EmitEvent(EmitData, true);
 ...
 
 FName MyName = TEXT("my name");
-FGESHandler::DefaultHandler()->EmitEvent(EmitData, MyName);
+FGESHandler::DefaultHandler()->EmitEvent(Context, MyName);
 ```
 
 ##### UObject*
@@ -178,7 +185,7 @@ FGESHandler::DefaultHandler()->EmitEvent(EmitData, MyName);
 
 UObject* SomeObject;
 
-FGESHandler::DefaultHandler()->EmitEvent(EmitData, SomeObject);
+FGESHandler::DefaultHandler()->EmitEvent(Context, SomeObject);
 ```
 
 ##### Struct
@@ -215,19 +222,19 @@ FGESHandler::DefaultHandler()->EmitEvent(FCustomTestData::StaticStruct(), &EmitS
 
 ### Receive an event
 
-The recommended method is using lambda receivers. Define an _FGESLambdaBind_ struct as the first param, then pass your overloaded lambda as the second type. NB: you can also alternatively organize your receivers with e.g. subclassing a _GESBaseReceiverComponent_, but these are only applicable for actor owners and thus not recommended over lambda receivers in general. 
+The recommended method is using lambda receivers. Define an _FGESEventContext_ struct as the first param, then pass your overloaded lambda as the second type. NB: you can also alternatively organize your receivers with e.g. subclassing a _GESBaseReceiverComponent_, but these are only applicable for actor owners and thus not recommended over lambda receivers in general. 
 
 #### No param event
 
 Only the bind info is required. Use 'this' capture context in the lambda to enable calling e.g. member functions.
 
 ```c++
-FGESLambdaBind BindInfo;
-BindInfo.Domain = TEXT("global.default");
-BindInfo.Event = TEXT("MyEvent");
-BindInfo.WorldContext = this;
+FGESEventContext Context;
+Context.Domain = TEXT("global.default");
+Context.Event = TEXT("MyEvent");
+Context.WorldContext = this;
  
-FGESHandler::DefaultHandler()->AddLambdaListener(BindInfo, [this]
+FGESHandler::DefaultHandler()->AddLambdaListener(Context, [this]
 {
     //handle receive
 });
@@ -238,7 +245,7 @@ FGESHandler::DefaultHandler()->AddLambdaListener(BindInfo, [this]
 ```c++
 ...
 
-FGESHandler::DefaultHandler()->AddLambdaListener(BindInfo, [this](const FString& StringData)
+FGESHandler::DefaultHandler()->AddLambdaListener(Context, [this](const FString& StringData)
 {
     //handle receive, e.g. log result
     UE_LOG(LogTemp, Log, TEXT("Received %s"), *StringData);
@@ -250,7 +257,7 @@ FGESHandler::DefaultHandler()->AddLambdaListener(BindInfo, [this](const FString&
 ```c++
 ...
 
-FGESHandler::DefaultHandler()->AddLambdaListener(BindInfo, [this](float FloatData)
+FGESHandler::DefaultHandler()->AddLambdaListener(Context, [this](float FloatData)
 {
     //handle receive, e.g. log result
     UE_LOG(LogTemp, Log, TEXT("Received %1.3f"), FloatData);
@@ -259,10 +266,12 @@ FGESHandler::DefaultHandler()->AddLambdaListener(BindInfo, [this](float FloatDat
 
 #### int32 param event
 
+NB: name specialization of this bind due to lambda bind ambiguity with float callback
+
 ```c++
 ...
 
-FGESHandler::DefaultHandler()->AddLambdaListener(BindInfo, [this](int32 IntData)
+FGESHandler::DefaultHandler()->AddLambdaListenerInt(Context, [this](int32 IntData)
 {
     //handle receive, e.g. log result
     UE_LOG(LogTemp, Log, TEXT("Received %d"), IntData);
@@ -271,10 +280,12 @@ FGESHandler::DefaultHandler()->AddLambdaListener(BindInfo, [this](int32 IntData)
 
 #### bool param event
 
+NB: name specialization of this bind due to lambda bind ambiguity with float callback
+
 ```c++
 ...
 
-FGESHandler::DefaultHandler()->AddLambdaListener(BindInfo, [this](bool BoolData)
+FGESHandler::DefaultHandler()->AddLambdaListenerBool(Context, [this](bool BoolData)
 {
     //handle receive, e.g. log result
     UE_LOG(LogTemp, Log, TEXT("Received %d"), BoolData);
@@ -286,7 +297,7 @@ FGESHandler::DefaultHandler()->AddLambdaListener(BindInfo, [this](bool BoolData)
 ```c++
 ...
 
-FGESHandler::DefaultHandler()->AddLambdaListener(BindInfo, [this](const FName& NameData)
+FGESHandler::DefaultHandler()->AddLambdaListener(Context, [this](const FName& NameData)
 {
     //handle receive, e.g. log result
     UE_LOG(LogTemp, Log, TEXT("Received %s"), *NameData.ToString());
@@ -298,7 +309,7 @@ FGESHandler::DefaultHandler()->AddLambdaListener(BindInfo, [this](const FName& N
 ```c++
 ...
 
-FGESHandler::DefaultHandler()->AddLambdaListener(BindInfo, [this](UObject* ObjectData)
+FGESHandler::DefaultHandler()->AddLambdaListener(Context, [this](UObject* ObjectData)
 {
     //handle receive, e.g. log result
     UE_LOG(LogTemp, Log, TEXT("Received %s"), *ObjectData.GetName());
@@ -329,7 +340,7 @@ struct FCustomTestData
 
 ...
 
-FGESHandler::DefaultHandler()->AddLambdaListener(BindInfo, [this](UStruct* Struct, void* StructPtr)
+FGESHandler::DefaultHandler()->AddLambdaListener(Context, [this](UStruct* Struct, void* StructPtr)
 {
     //Confirm matching struct
     if (Struct == FCustomTestData::StaticStruct())
@@ -349,7 +360,7 @@ If you're not sure of the type of data you can receive, try a wildcard lambda an
 
 ```c++
 ...
-FGESHandler::DefaultHandler()->AddLambdaListener(BindInfo, [this](const FGESWildcardProperty& WildcardProperty)
+FGESHandler::DefaultHandler()->AddLambdaListener(Context, [this](const FGESWildcardProperty& WildcardProperty)
 {
     //Let's try to decode a float
     float MaybeFloat;
@@ -367,7 +378,7 @@ Each bound event function should unbind automatically when the world gets remove
 ```c++
 ...
  
-FString LambdaFunctionName = FGESHandler::DefaultHandler()->AddLambdaListener(BindInfo, [this]
+FString LambdaFunctionName = FGESHandler::DefaultHandler()->AddLambdaListener(Context, [this]
 {
     //handle receive
 });
@@ -375,7 +386,7 @@ FString LambdaFunctionName = FGESHandler::DefaultHandler()->AddLambdaListener(Bi
 ...
 
 //let's say we're done listening now
-FGESHandler::DefaultHandler()->RemoveLambdaListener(BindInfo, LambdaFunctionName);
+FGESHandler::DefaultHandler()->RemoveLambdaListener(Context, LambdaFunctionName);
 
 ```
 
