@@ -77,7 +77,43 @@ You can then convert your received wildcard property to a fixed type with a bool
 
 NB: The struct property in the conversion node will appear gray until linked with a local/member variable via e.g. a Set call.
 
-### Options
+## Unbinding
+
+Events automatically unbind on world end, but if you expect your receiver to last shorter than the world, consider unbinding the event, e.g. on it's _EndPlay_ call
+
+![unbind](https://i.imgur.com/Qw3znMg.png)
+
+If you don't want to bookkeep events, consider using _GESBaseReceiverComponent_ sub-classed _ActorComponent_ receivers, which auto-unbind on endplay.
+
+## Component Receivers - Organizing Events
+
+If your receiver is an actor, you can organize your events via _GESBaseReceiverComponent_ sub-classed _ActorComponent_ receivers. These receivers auto-matically store the last received value and auto-unbind on EndPlay.
+
+There are a few built-in types available e.g. a float receiver
+
+![float receiver](https://i.imgur.com/eVCxucx.png)
+
+Just add the component to your actor and add the OnFloatReceived Event. Change the BindSettings to match your expected _Domain_ and _Event_ names. Leave receiving function unless you want to specialize this receiver.
+
+Below are the available built-in receivers.
+
+![convenience receivers](https://i.imgur.com/wcECuDo.png)
+
+#### Customizing your own receiver
+
+Start with adding a new blueprint with _GESBaseReceiverComponent_ base class
+
+![subclass](https://i.imgur.com/W2qvQR8.png)
+
+Then modify your blueprint to store your own data type and forward the GES event to your own Event Dispatcher.
+
+![example customization](https://i.imgur.com/x04WW5c.png)
+
+e.g. a custom struct specialized receiver
+
+You can then just add this component to all the actors that are interested in this type of event.
+
+## Options
 
 There are some simple options to toggle some log messages and detailed struct type checking.
 
