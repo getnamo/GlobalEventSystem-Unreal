@@ -355,7 +355,7 @@ void FGESHandler::EmitToListenersWithData(const FGESPropertyEmitContext& EmitDat
 	if (EmitData.Property)
 	{
 		//Warn if we're trying to pin a new event without unpinning old one
-		if (EmitData.bPinned && EmitData.bPinned)
+		if (Event.bPinned && EmitData.bPinned)
 		{
 			//cleanup if different
 			if (EmitData.Property != Event.PinnedData.Property ||
@@ -368,7 +368,7 @@ void FGESHandler::EmitToListenersWithData(const FGESPropertyEmitContext& EmitDat
 			Event.PinnedData.CopyPropertyToPinnedBuffer();
 			//UE_LOG(LogTemp, Warning, TEXT("FGESHandler::EmitToListenersWithData Emitted a pinned event to an already pinned event. Pinned data updated."));
 		}
-		if (!EmitData.bPinned && EmitData.bPinned)
+		if (!Event.bPinned && EmitData.bPinned)
 		{
 			Event.PinnedData.CleanupPinnedData();
 			Event.PinnedData.Property = EmitData.Property;
@@ -525,26 +525,35 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, UStruct* Struct, vo
 
 void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, const FString& ParamData)
 {
-	FString MutableParamString = ParamData;
 	FGESPropertyEmitContext PropData(EmitData);
 
-	
-	FField* Field = FStrProperty::Construct(FFieldVariant(EmitData.WorldContext), TEXT("StringValue"), EObjectFlags::RF_Transient);
-	
-	FStrProperty* StrProperty = CastField<FStrProperty>(Field);
-	FString Out;
-	StrProperty->ImportText(*ParamData, &Out, 0, EmitData.WorldContext);
+	//We have no property context, make a new property
+	FStrProperty* StrProperty = /*CastField<FStrProperty>(FStrProperty::Construct(FFieldVariant(EmitData.WorldContext),
+		TEXT("StringValue"),
+		EObjectFlags::RF_Transient));*/
+		new FStrProperty(FFieldVariant(EmitData.WorldContext),
+			TEXT("StringValue"),
+			EObjectFlags::RF_Transient);
+
+	//Wrap our FString into a buffer we can hold
+	TArray<uint8> Buffer;
+	int32 Size = ParamData.Len() + 1;
+	Buffer.SetNum(Size);
+
+	StrProperty->SetPropertyValue(Buffer.GetData(), ParamData);
 
 	PropData.Property = StrProperty;
-	PropData.PropertyPtr = &Out;
+	PropData.PropertyPtr = Buffer.GetData();
 
-	EmitToListenersWithData(PropData, [&EmitData, &MutableParamString](const FGESEventListener& Listener)
+	EmitToListenersWithData(PropData, [&PropData](const FGESEventListener& Listener)
 	{
-		if (FunctionHasValidParams(Listener.Function, FStrProperty::StaticClass(), EmitData, Listener))
+		if (FunctionHasValidParams(Listener.Function, FStrProperty::StaticClass(), PropData, Listener))
 		{
-			Listener.ReceiverWCO->ProcessEvent(Listener.Function, &MutableParamString);
+			Listener.ReceiverWCO->ProcessEvent(Listener.Function, PropData.PropertyPtr);
 		}
 	});
+
+	delete StrProperty;
 }
 
 void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, UObject* ParamData)
