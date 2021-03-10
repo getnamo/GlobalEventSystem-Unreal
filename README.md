@@ -69,7 +69,13 @@ Then make your custom event or blueprint function with a matching name and match
 
 Instead of linking via function name, you can connect or make a wildcard property delegate (c++ type _FGESOnePropertySignature_).
 
-From that event you can try to convert your wildcard parameter into the types you want to receiver with a boolean specifying if the conversion was successful.
+![wildcard delegate](https://i.imgur.com/bOX2lve.png)
+
+You can then convert your received wildcard property to a fixed type with a boolean indicator if the conversion was successful. Below are the available conversion types.
+
+![other conversions](https://i.imgur.com/SPrUg3B.png)
+
+NB: The struct property in the conversion node will appear gray until linked with a local/member variable via e.g. a Set call.
 
 ### Options
 
@@ -85,6 +91,7 @@ Keep in mind that you can start using GES incrementally for specific tasks or pa
 Let's say you had two actors in two different sub-maps and you wanted one actor to know that it has spawned from e.g. some dynamic process. Delay nodes shown below are only used to show example event delays due to e.g. async processing or waiting on something else to happen; not needed for function.
 
 ![actor ready](https://i.imgur.com/BLUFoFs.png)
+
 In the spawned actor you could emit a reference to itself.
 
 ![listen actor](https://i.imgur.com/IP0XTtC.png)
@@ -379,11 +386,14 @@ FGESHandler::DefaultHandler()->AddLambdaListener(Context, [this](const FGESWildc
 ```
 
 #### Unbinding Events
-Each bound event function should unbind automatically when the world gets removed, but you can also unbind a lambda via the lambda name return you get when you bind the listener to the event.
+Each bound event function should unbind automatically when the world gets removed, but it is recommended to remove your listener if your receiver has a shorter lifetime e.g. on its _EndPlay_ call.
+
+You unbind a lambda via the lambda function name return you get when you bind the listener to the event.
 
 ```c++
 ...
- 
+
+//Store a reference to your lambda via string name
 FString LambdaFunctionName = FGESHandler::DefaultHandler()->AddLambdaListener(Context, [this]
 {
     //handle receive
