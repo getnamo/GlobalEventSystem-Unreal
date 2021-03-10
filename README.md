@@ -79,11 +79,13 @@ NB: The struct property in the conversion node will appear gray until linked wit
 
 ## Unbinding
 
-Events automatically unbind on world end, but if you expect your receiver to last shorter than the world, consider unbinding the event, e.g. on its _EndPlay_ call
+Events automatically unbind on world end, but if you expect your receiver to last shorter than the world, consider unbinding all events attached to receiver on its _EndPlay_ call
+
+![unbind all](https://i.imgur.com/ePryxZ4.png)
+
+or optionally unbind individual events
 
 ![unbind](https://i.imgur.com/Qw3znMg.png)
-
-If you don't want to bookkeep events, consider using a [GESBaseReceiverComponent](https://github.com/getnamo/global-event-system-ue4/blob/feature-api-refactor/README.md#component-receivers---organizing-events) sub-classed _ActorComponent_ receivers, which auto-unbind on endplay.
 
 ## Examples
 
@@ -112,7 +114,7 @@ You can add a simple actor to the map which listens to various GES events. When 
 
 Blueprints which would listen to the SAReady event, don't even have to care where the source came from and you could easily swap out this logic actor for maybe another type without changing any other code; an example of the loose coupling enabled by GES. The actor is replaceable, there is no additional boilerplate that needs to be changed if replaced.
 
-## Component Receivers - Organizing Events
+## Component Receivers - Optional way of organizing events
 
 If your receiver is an actor, you can organize your events via _GESBaseReceiverComponent_ sub-classed _ActorComponent_ receivers. These receivers automatically store the last received value and auto-unbind on EndPlay.
 
