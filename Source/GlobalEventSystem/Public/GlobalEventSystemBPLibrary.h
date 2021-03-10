@@ -21,10 +21,10 @@ class GLOBALEVENTSYSTEM_API UGlobalEventSystemBPLibrary : public UBlueprintFunct
 	static void GESUnbindEvent(UObject* WorldContextObject, const FString& Domain = TEXT("global.default"), const FString& Event = TEXT(""), const FString& ReceivingFunction = TEXT(""));
 
 	/** 
-	* Call this on endplay to remove all events associated with this graph
+	* Call this on endplay to remove all events associated with this graph. If context isn't specified, graph context used (default use case).
 	*/
 	UFUNCTION(BlueprintCallable, meta = (Keywords = "ges sever stoplisten", WorldContext = "WorldContextObject"), Category = "GlobalEventSystem")
-	static void GESUnbindAllEventsForContext(UObject* WorldContextObject);
+	static void GESUnbindAllEventsForContext(UObject* WorldContextObject, UObject* Context = nullptr);
 
 
 	UFUNCTION(BlueprintCallable, meta = (Keywords = "ges sever stoplisten", WorldContext = "WorldContextObject"), Category = "GlobalEventSystem")

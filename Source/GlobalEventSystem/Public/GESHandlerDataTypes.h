@@ -23,7 +23,7 @@ struct FGESDynamicArg
 	void* Arg01;
 };
 
-
+//Minimal definition to define a listener (for removal)
 struct FGESMinimalEventListener
 {
 	UObject* ReceiverWCO;	//WorldContextObject
@@ -38,10 +38,6 @@ struct FGESMinimalEventListener
 
 struct FGESEventListener : FGESMinimalEventListener
 {
-	//ReceiverTarget.FunctionName
-	UObject* ReceiverWCO;	//WorldContextObject
-	FString FunctionName;
-
 	// Opt A) Bound UFunction, valid after calling LinkFunction
 	UFunction* Function;
 
@@ -59,7 +55,7 @@ struct FGESEventListener : FGESMinimalEventListener
 	bool IsValidListener() const;
 };
 
-
+//Wrapper struct for tracking event-receiver pairs in ReceiverMap
 struct FGESEventListenerWithContext
 {
 	FGESMinimalEventListener Listener;

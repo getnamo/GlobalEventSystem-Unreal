@@ -333,15 +333,10 @@ void FGESHandler::RemoveAllListenersForReceiver(UObject* ReceiverWCO)
 	
 	for (FGESEventListenerWithContext& ListenContext: ReceiverArray)
 	{
-		UE_LOG(LogTemp, Log, TEXT("Trying to remove %s %d"), *ListenContext.Event, ReceiverWCO);
-		//FGESEventListener FullListener = ;
 		RemoveListener(ListenContext.Domain, ListenContext.Event, FGESEventListener(ListenContext.Listener));
-		UE_LOG(LogTemp, Log, TEXT("Done with %s %d"), *ListenContext.Event, ReceiverWCO);
 	}
 
 	ReceiverMap.Remove(ReceiverWCO);
-
-	UE_LOG(LogTemp, Log, TEXT("Fully done with %d"), ReceiverWCO);
 }
 
 void FGESHandler::RemoveLambdaListener(FGESEventContext BindInfo, TFunction<void(const FGESWildcardProperty&)> ReceivingLambda)
