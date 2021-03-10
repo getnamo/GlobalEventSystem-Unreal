@@ -335,11 +335,11 @@ FGESHandler::DefaultHandler()->AddLambdaListener(BindInfo, [this](UStruct* Struc
     if (Struct == FCustomTestData::StaticStruct())
     {
         //Deep copy your struct to local ref
-				    FCustomTestData TestData;
-				    TestData = *(FCustomTestData*)StructPtr;
+	FCustomTestData TestData;
+	TestData = *(FCustomTestData*)StructPtr;
         
-				    //Test data is now usable
-			    	UE_LOG(LogTemp, Log, TEXT("Struct data: %s %d"), *TestData.Name, TestData.Data.Num());
+	//Test data is now usable
+	UE_LOG(LogTemp, Log, TEXT("Struct data: %s %d"), *TestData.Name, TestData.Data.Num());
     }
 });
 ```
