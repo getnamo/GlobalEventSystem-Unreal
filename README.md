@@ -93,7 +93,7 @@ and in the other actor you could bind to that event to do something with that in
 
 ![delayed bind](https://i.imgur.com/UfQYsJa.png)
 
-This is the case where pinning the event would help as now when the receiving actor binds to the event, it will automatically receive the last emit even though it was called after the event was emitted. From a developer perspective you can now just handle the receiving logic and not worry about whether you need to add delays or loop through all actors in the map. By arranging your events to signal selectively states and muxing those states you can ensure that the order of your events remains predictable; only start x when part y and z in the map have happened.
+This is the case where pinning the event would help as now when the receiving actor binds to the event, it will automatically receive the last emit even though it was called after the event was emitted. From a developer perspective you can now just handle the receiving logic and not worry about whether you need to add delays or loop through all actors in the map. By arranging your events to signal selectively and muxing those states you can ensure that the order of your events remains predictable; only start x when part y and z in the map have happened.
 
 ### Flow muxing and loose coupling
 
