@@ -391,7 +391,8 @@ Optionally you can also store the function and pass it instead of the lambda nam
 ## Possible Improvements
 See https://github.com/getnamo/global-event-system-ue4/issues for latest.
 General enhancements:
-- Add receiver limits, e.g. must have this interface
 - Event with callback (get information from a listener)
-- Add optional logging utility to record event flow with possibly replay
-- Trigger limits, e.g. can only trigger once
+- Add optional logging utility to record event flow with possibly replay (attach middleware function)
+- Trigger limits, e.g. can only trigger n times
+- Add receiver limits (target requires interface/etc)
+- Bind to Interface (binds all events in an interface map to functions in interface)
