@@ -87,7 +87,7 @@ If you don't want to bookkeep events, consider using _GESBaseReceiverComponent_ 
 
 ## Component Receivers - Organizing Events
 
-If your receiver is an actor, you can organize your events via _GESBaseReceiverComponent_ sub-classed _ActorComponent_ receivers. These receivers auto-matically store the last received value and auto-unbind on EndPlay.
+If your receiver is an actor, you can organize your events via _GESBaseReceiverComponent_ sub-classed _ActorComponent_ receivers. These receivers automatically store the last received value and auto-unbind on EndPlay.
 
 There are a few built-in types available e.g. a float receiver
 
