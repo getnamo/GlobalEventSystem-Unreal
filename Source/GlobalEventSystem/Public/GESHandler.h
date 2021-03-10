@@ -84,10 +84,12 @@ public:
 	FString AddLambdaListener(FGESEventContext EventInfo, TFunction<void(const FString&)> ReceivingLambda);
 	FString AddLambdaListener(FGESEventContext EventInfo, TFunction<void(UObject*)> ReceivingLambda);
 	FString AddLambdaListener(FGESEventContext EventInfo, TFunction<void(float)> ReceivingLambda);
-	FString AddLambdaListenerInt(FGESEventContext EventInfo, TFunction<void(int32)> ReceivingLambda);
-	FString AddLambdaListenerBool(FGESEventContext EventInfo, TFunction<void(bool)> ReceivingLambda);
 	FString AddLambdaListener(FGESEventContext EventInfo, TFunction<void(const FName&)> ReceivingLambda);
 	FString AddLambdaListener(FGESEventContext EventInfo, TFunction<void(void)> ReceivingLambda);
+
+	//needed unique names due to ambiguity clash with float
+	FString AddLambdaListenerInt(FGESEventContext EventInfo, TFunction<void(int32)> ReceivingLambda);
+	FString AddLambdaListenerBool(FGESEventContext EventInfo, TFunction<void(bool)> ReceivingLambda);
 
 	/**
 	* Update global options

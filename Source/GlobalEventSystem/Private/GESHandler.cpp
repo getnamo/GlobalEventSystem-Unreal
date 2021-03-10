@@ -600,7 +600,10 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, float ParamData)
 	TArray<uint8> Buffer;
 	Buffer.SetNum(4);
 
-	FloatProperty->SetFloatingPointPropertyValue(Buffer.GetData(), ParamData);
+	void* BufferPtr = FloatProperty->ContainerPtrToValuePtr<float>(&Buffer);
+	FloatProperty->SetFloatingPointPropertyValue(BufferPtr, ParamData);
+
+
 
 	PropData.Property = FloatProperty;
 	PropData.PropertyPtr = Buffer.GetData();
