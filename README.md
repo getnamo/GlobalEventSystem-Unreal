@@ -379,11 +379,14 @@ FGESHandler::DefaultHandler()->AddLambdaListener(Context, [this](const FGESWildc
 ```
 
 #### Unbinding Events
-Each bound event function should unbind automatically when the world gets removed, but you can also unbind a lambda via the lambda name return you get when you bind the listener to the event.
+Each bound event function should unbind automatically when the world gets removed, but it is recommended to remove your listener if your receiver has a shorter lifetime e.g. on its _EndPlay_ call.
+
+You unbind a lambda via the lambda function name return you get when you bind the listener to the event.
 
 ```c++
 ...
- 
+
+//Store a reference to your lambda via string name
 FString LambdaFunctionName = FGESHandler::DefaultHandler()->AddLambdaListener(Context, [this]
 {
     //handle receive
