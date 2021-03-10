@@ -528,14 +528,15 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, const FString& Para
 	FGESPropertyEmitContext PropData(EmitData);
 
 	//We have no property context, make a new property
-	FStrProperty* StrProperty = /*CastField<FStrProperty>(FStrProperty::Construct(FFieldVariant(EmitData.WorldContext),
+	/*CastField<FStrProperty>(FStrProperty::Construct(FFieldVariant(EmitData.WorldContext),
 		TEXT("StringValue"),
 		EObjectFlags::RF_Transient));*/
+	FStrProperty* StrProperty = 
 		new FStrProperty(FFieldVariant(EmitData.WorldContext),
 			TEXT("StringValue"),
 			EObjectFlags::RF_Transient);
 
-	//Wrap our FString into a buffer we can hold
+	//Wrap our FString into a buffer we can share
 	TArray<uint8> Buffer;
 	int32 Size = ParamData.Len() + 1;
 	Buffer.SetNum(Size);
@@ -741,6 +742,41 @@ bool FGESHandler::EmitPropertyEvent(const FGESPropertyEmitContext& EmitData)
 		return false;
 	}
 	return false;
+}
+
+void FGESHandler::EmitPropertyEvent(const FGESPropertyEmitContext& EmitData, UStruct* Struct, void* StructPtr)
+{
+
+}
+
+void FGESHandler::EmitPropertyEvent(const FGESPropertyEmitContext& EmitData, const FString& ParamData)
+{
+
+}
+
+void FGESHandler::EmitPropertyEvent(const FGESPropertyEmitContext& EmitData, UObject* ParamData)
+{
+
+}
+
+void FGESHandler::EmitPropertyEvent(const FGESPropertyEmitContext& EmitData, float ParamData)
+{
+
+}
+
+void FGESHandler::EmitPropertyEvent(const FGESPropertyEmitContext& EmitData, int32 ParamData)
+{
+
+}
+
+void FGESHandler::EmitPropertyEvent(const FGESPropertyEmitContext& EmitData, bool ParamData)
+{
+
+}
+
+void FGESHandler::EmitPropertyEvent(const FGESPropertyEmitContext& EmitData, const FName& ParamData)
+{
+
 }
 
 void FGESHandler::SetOptions(const FGESGlobalOptions& InOptions)

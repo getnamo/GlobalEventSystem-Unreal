@@ -108,6 +108,15 @@ private:
 	//internal helper for in-context data filling for listeners
 	void EmitToListenersWithData(const FGESPropertyEmitContext& EmitData, TFunction<void(const FGESEventListener&)> DataFillCallback);
 
+	//internal overloads
+	void EmitPropertyEvent(const FGESPropertyEmitContext& EmitData, UStruct* Struct, void* StructPtr);
+	void EmitPropertyEvent(const FGESPropertyEmitContext& EmitData, const FString& ParamData);
+	void EmitPropertyEvent(const FGESPropertyEmitContext& EmitData, UObject* ParamData);
+	void EmitPropertyEvent(const FGESPropertyEmitContext& EmitData, float ParamData);
+	void EmitPropertyEvent(const FGESPropertyEmitContext& EmitData, int32 ParamData);
+	void EmitPropertyEvent(const FGESPropertyEmitContext& EmitData, bool ParamData);
+	void EmitPropertyEvent(const FGESPropertyEmitContext& EmitData, const FName& ParamData);
+
 	//can check function signature vs e.g. FString
 	static bool FirstParamIsCppType(UFunction* Function, const FString& TypeString);
 	static bool FirstParamIsSubclassOf(UFunction* Function, FFieldClass* ClassType);
