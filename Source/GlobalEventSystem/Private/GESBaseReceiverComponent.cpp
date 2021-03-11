@@ -20,7 +20,7 @@ void UGESBaseReceiverComponent::BeginPlay()
 		if (BindSettings.ReceivingFunction == TEXT("OnEvent(component)"))
 		{
 			InternalListener.BindDynamic(this, &UGESBaseReceiverComponent::HandleInternalEvent);
-			UGlobalEventSystemBPLibrary::GESBindEventToWildcardDelegate(this, InternalListener, BindSettings.Domain, BindSettings.Event);
+			UGlobalEventSystemBPLibrary::GESBindEventToDelegate(this, InternalListener, BindSettings.Domain, BindSettings.Event);
 		}
 		else
 		{
@@ -35,7 +35,7 @@ void UGESBaseReceiverComponent::EndPlay(const EEndPlayReason::Type EndPlayReason
 	{
 		if (BindSettings.ReceivingFunction == TEXT("OnEvent(component)"))
 		{
-			UGlobalEventSystemBPLibrary::GESUnbindWildcardDelegate(this, InternalListener, BindSettings.Domain, BindSettings.Event);
+			UGlobalEventSystemBPLibrary::GESUnbindDelegate(this, InternalListener, BindSettings.Domain, BindSettings.Event);
 			PinnedData.CleanupPinnedData();
 		}
 		else

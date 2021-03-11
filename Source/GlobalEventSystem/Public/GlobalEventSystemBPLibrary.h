@@ -4,6 +4,7 @@
 
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "GESHandler.h"
+#include "GameplayTagContainer.h"
 #include "GlobalEventSystemBPLibrary.generated.h"
 
 /* 
@@ -20,6 +21,13 @@ class GLOBALEVENTSYSTEM_API UGlobalEventSystemBPLibrary : public UBlueprintFunct
 	UFUNCTION(BlueprintCallable, meta = (Keywords = "ges sever stoplisten", WorldContext = "WorldContextObject"), Category = "GlobalEventSystem")
 	static void GESUnbindEvent(UObject* WorldContextObject, const FString& Domain = TEXT("global.default"), const FString& Event = TEXT(""), const FString& ReceivingFunction = TEXT(""));
 
+	/**
+	* Remove this listener from the specified GESEvent given by GameplayTag.
+	*/
+	UFUNCTION(BlueprintCallable, meta = (Keywords = "ges sever stoplisten", WorldContext = "WorldContextObject"), Category = "GlobalEventSystem")
+	static void GESUnbindTagEvent(UObject* WorldContextObject, FGameplayTag Tag, const FString& ReceivingFunction = TEXT(""));
+
+
 	/** 
 	* Call this on endplay to remove all events associated with this graph. If context isn't specified, graph context used (default use case).
 	*/
@@ -28,8 +36,10 @@ class GLOBALEVENTSYSTEM_API UGlobalEventSystemBPLibrary : public UBlueprintFunct
 
 
 	UFUNCTION(BlueprintCallable, meta = (Keywords = "ges sever stoplisten", WorldContext = "WorldContextObject"), Category = "GlobalEventSystem")
-	static void GESUnbindWildcardDelegate(UObject* WorldContextObject, const FGESOnePropertySignature& ReceivingFunction, const FString& Domain = TEXT("global.default"), const FString& Event = TEXT(""));
+	static void GESUnbindDelegate(UObject* WorldContextObject, const FGESOnePropertySignature& ReceivingFunction, const FString& Domain = TEXT("global.default"), const FString& Event = TEXT(""));
 
+	UFUNCTION(BlueprintCallable, meta = (Keywords = "ges sever stoplisten", WorldContext = "WorldContextObject"), Category = "GlobalEventSystem")
+	static void GESUnbindTagDelegate(UObject* WorldContextObject, FGameplayTag Tag, const FGESOnePropertySignature& ReceivingFunction);
 
 	/**
 	* Bind a function (to current caller) to GES event. Make sure to match your receiving function parameters to the GESEvent ones.
@@ -38,13 +48,25 @@ class GLOBALEVENTSYSTEM_API UGlobalEventSystemBPLibrary : public UBlueprintFunct
 	static void GESBindEvent(UObject* WorldContextObject, const FString& Domain = TEXT("global.default"), const FString& Event = TEXT(""), const FString& ReceivingFunction = TEXT(""));
 
 	/**
+	* Bind a function (to current caller) to GES event defined by a GamePlayTag
+	*/
+	UFUNCTION(BlueprintCallable, meta = (Keywords = "ges create listen", WorldContext = "WorldContextObject"), Category = "GlobalEventSystem")
+	static void GESBindTagEvent(UObject* WorldContextObject, FGameplayTag DomainedEventTag, const FString& ReceivingFunction = TEXT(""));
+
+	/**
+	* Bind a function (to current caller) to GES event defined by a GamePlayTag
+	*/
+	UFUNCTION(BlueprintCallable, meta = (Keywords = "ges create listen", WorldContext = "WorldContextObject"), Category = "GlobalEventSystem")
+	static void GESBindTagEventToDelegate(UObject* WorldContextObject, FGameplayTag DomainedEventTag, const FGESOnePropertySignature& ReceivingFunction);
+
+	/**
 	* Bind an event delegate to GES event. Use blueprint utility to decode UProperty.
 	*/
 	UFUNCTION(BlueprintCallable, meta = (Keywords = "ges create listen", WorldContext = "WorldContextObject"), Category = "GlobalEventSystem")
-	static void GESBindEventToWildcardDelegate(UObject* WorldContextObject, const FGESOnePropertySignature& ReceivingFunction, const FString& Domain = TEXT("global.default"), const FString& Event = TEXT(""));
+	static void GESBindEventToDelegate(UObject* WorldContextObject, const FGESOnePropertySignature& ReceivingFunction, const FString& Domain = TEXT("global.default"), const FString& Event = TEXT(""));
 
 	/** 
-	* Emit desired event with data. Data can be any property (just not UObjects at this time). 
+	* Emit desired event with data. Data can be any single property (wrap arrays/maps etc in a struct or object)
 	* Pinning an event means it will emit to future listeners even if the event has already been
 	* emitted.
 	*/
@@ -53,9 +75,28 @@ class GLOBALEVENTSYSTEM_API UGlobalEventSystemBPLibrary : public UBlueprintFunct
 
 	/** 
 	* Just emits the event with no additional data
+	* Pinning an event means it will emit to future listeners even if the event has already been
+	* emitted.
 	*/
 	UFUNCTION(BlueprintCallable, meta=(WorldContext = "WorldContextObject"), Category = "GlobalEventSystem")
 	static void GESEmitEvent(UObject* WorldContextObject, bool bPinned = false, const FString& Domain = TEXT("global.default"), const FString& Event = TEXT(""));
+
+	/**
+	* Just emits the event with no additional data using GameplayTags to define domain and event.
+	* Pinning an event means it will emit to future listeners even if the event has already been
+	* emitted.
+	*/
+	UFUNCTION(BlueprintCallable, meta = (WorldContext = "WorldContextObject"), Category = "GlobalEventSystem")
+	static void GESEmitTagEvent(UObject* WorldContextObject, FGameplayTag DomainedEventTag, bool bPinned = false);
+
+	/**
+	* Emit desired event with data using GameplayTags to define domain and event. Data can be any single
+	* property (wrap arrays/maps etc in a struct or object).
+	* Pinning an event means it will emit to future listeners even if the event has already been
+	* emitted.
+	*/
+	UFUNCTION(BlueprintCallable, CustomThunk, Category = "GlobalEventSystem", meta = (CustomStructureParam = "ParameterData", WorldContext = "WorldContextObject"))
+	static void GESEmitTagEventOneParam(UObject* WorldContextObject, TFieldPath<FProperty> ParameterData, FGameplayTag DomainedEventTag, bool bPinned = false);
 
 	/** 
 	* If an event was pinned, this will unpin it. If you wish to re-pin a different event you need to unpin the old event first.
@@ -103,6 +144,10 @@ class GLOBALEVENTSYSTEM_API UGlobalEventSystemBPLibrary : public UBlueprintFunct
 	UFUNCTION(BlueprintPure, meta = (DisplayName = "To Object (Wildcard Property)", BlueprintAutocast), Category = "Utilities|GES")
 	static bool Conv_PropToObject(const FGESWildcardProperty& InProp, UObject*& OutObject);
 
+	/** Convert a GameplayTag into a Domain and Event string pair */
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "To Domain and Event (GameplayTag)", BlueprintAutocast), Category = "Utilities|GES")
+	static void Conv_TagToDomainAndEvent(FGameplayTag InTag, FString& OutDomain, FString& OutEvent);
+
 	//Convert property into c++ accessible form
 	DECLARE_FUNCTION(execGESEmitEventOneParam)
 	{
@@ -122,6 +167,34 @@ class GLOBALEVENTSYSTEM_API UGlobalEventSystemBPLibrary : public UBlueprintFunct
 		Stack.StepCompiledIn<FBoolProperty>(&EmitData.bPinned);
 		Stack.StepCompiledIn<FStrProperty>(&EmitData.Domain);
 		Stack.StepCompiledIn<FStrProperty>(&EmitData.Event);
+
+		P_FINISH;
+		P_NATIVE_BEGIN;
+		HandleEmit(EmitData);
+		P_NATIVE_END;
+	}
+
+	DECLARE_FUNCTION(execGESEmitTagEventOneParam)
+	{
+		Stack.MostRecentProperty = nullptr;
+		FGESPropertyEmitContext EmitData;
+
+		Stack.StepCompiledIn<FObjectProperty>(&EmitData.WorldContext);
+
+		//Determine wildcard property
+		Stack.Step(Stack.Object, NULL);
+		FProperty* ParameterProp = CastField<FProperty>(Stack.MostRecentProperty);
+		void* PropPtr = Stack.MostRecentPropertyAddress;
+
+		EmitData.Property = ParameterProp;
+		EmitData.PropertyPtr = PropPtr;
+		
+		FGameplayTag Tag;
+		Stack.StepCompiledIn<FStructProperty>(&Tag);
+		Conv_TagToDomainAndEvent(Tag, EmitData.Domain, EmitData.Event);
+
+		
+		Stack.StepCompiledIn<FBoolProperty>(&EmitData.bPinned);
 
 		P_FINISH;
 		P_NATIVE_BEGIN;
@@ -159,5 +232,4 @@ class GLOBALEVENTSYSTEM_API UGlobalEventSystemBPLibrary : public UBlueprintFunct
 private:
 	static void HandleEmit(const FGESPropertyEmitContext& EmitData);
 	static bool HandlePropToStruct(const FGESWildcardProperty& InProp, FGESWildcardProperty& FullProp);
-	//todo add support for array type props
 };

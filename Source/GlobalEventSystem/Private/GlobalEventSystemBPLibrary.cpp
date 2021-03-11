@@ -17,6 +17,14 @@ void UGlobalEventSystemBPLibrary::GESUnbindEvent(UObject* WorldContextObject, co
 	FGESHandler::DefaultHandler()->RemoveListener(Domain, Event, Listener);
 }
 
+void UGlobalEventSystemBPLibrary::GESUnbindTagEvent(UObject* WorldContextObject, FGameplayTag Tag, const FString& ReceivingFunction /*= TEXT("")*/)
+{
+	FString Domain;
+	FString Event;
+	Conv_TagToDomainAndEvent(Tag, Domain, Event);
+	GESUnbindEvent(WorldContextObject, Domain, Event, ReceivingFunction);
+}
+
 void UGlobalEventSystemBPLibrary::GESUnbindAllEventsForContext(UObject* WorldContextObject, UObject* Context /*= nullptr*/)
 {
 	if (Context == nullptr)
@@ -26,7 +34,7 @@ void UGlobalEventSystemBPLibrary::GESUnbindAllEventsForContext(UObject* WorldCon
 	FGESHandler::DefaultHandler()->RemoveAllListenersForReceiver(Context);
 }
 
-void UGlobalEventSystemBPLibrary::GESUnbindWildcardDelegate(UObject* WorldContextObject, const FGESOnePropertySignature& ReceivingFunction, const FString& Domain /*= TEXT("global.default")*/, const FString& Event /*= TEXT("")*/)
+void UGlobalEventSystemBPLibrary::GESUnbindDelegate(UObject* WorldContextObject, const FGESOnePropertySignature& ReceivingFunction, const FString& Domain /*= TEXT("global.default")*/, const FString& Event /*= TEXT("")*/)
 {
 	FGESEventListener Listener;
 	Listener.ReceiverWCO = WorldContextObject;
@@ -45,6 +53,14 @@ void UGlobalEventSystemBPLibrary::GESUnbindWildcardDelegate(UObject* WorldContex
 	FGESHandler::DefaultHandler()->RemoveListener(Domain, Event, Listener);
 }
 
+void UGlobalEventSystemBPLibrary::GESUnbindTagDelegate(UObject* WorldContextObject, FGameplayTag Tag, const FGESOnePropertySignature& ReceivingFunction)
+{
+	FString Domain;
+	FString Event;
+	Conv_TagToDomainAndEvent(Tag, Domain, Event);
+	GESUnbindDelegate(WorldContextObject, ReceivingFunction, Domain, Event);
+}
+
 void UGlobalEventSystemBPLibrary::GESBindEvent(UObject* WorldContextObject, const FString& Domain /*= TEXT("global.default")*/, const FString& Event /*= TEXT("")*/, const FString& ReceivingFunction /*= TEXT("")*/)
 {
 	FGESEventListener Listener;
@@ -55,7 +71,29 @@ void UGlobalEventSystemBPLibrary::GESBindEvent(UObject* WorldContextObject, cons
 	FGESHandler::DefaultHandler()->AddListener(Domain, Event, Listener);
 }
 
-void UGlobalEventSystemBPLibrary::GESBindEventToWildcardDelegate(UObject* WorldContextObject, const FGESOnePropertySignature& ReceivingFunction, const FString& Domain /*= TEXT("global.default")*/, const FString& Event /*= TEXT("")*/)
+void UGlobalEventSystemBPLibrary::GESBindTagEvent(UObject* WorldContextObject, FGameplayTag DomainedEventTag, const FString& ReceivingFunction /*= TEXT("")*/)
+{
+	FGESEventListener Listener;
+	Listener.ReceiverWCO = WorldContextObject;
+	Listener.FunctionName = ReceivingFunction;
+	Listener.LinkFunction();	//this makes the function valid by finding a reference to it
+
+	FString Domain;
+	FString Event;
+	Conv_TagToDomainAndEvent(DomainedEventTag, Domain, Event);
+
+	FGESHandler::DefaultHandler()->AddListener(Domain, Event, Listener);
+}
+
+void UGlobalEventSystemBPLibrary::GESBindTagEventToDelegate(UObject* WorldContextObject, FGameplayTag DomainedEventTag, const FGESOnePropertySignature& ReceivingFunction)
+{
+	FString Domain;
+	FString Event;
+	Conv_TagToDomainAndEvent(DomainedEventTag, Domain, Event);
+	GESBindEventToDelegate(WorldContextObject, ReceivingFunction, Domain, Event);
+}
+
+void UGlobalEventSystemBPLibrary::GESBindEventToDelegate(UObject* WorldContextObject, const FGESOnePropertySignature& ReceivingFunction, const FString& Domain /*= TEXT("global.default")*/, const FString& Event /*= TEXT("")*/)
 {
 	FGESEventListener Listener;
 	Listener.ReceiverWCO = WorldContextObject;
@@ -91,6 +129,20 @@ void UGlobalEventSystemBPLibrary::GESEmitEvent(UObject* WorldContextObject, bool
 	EmitData.Event = EventName;
 	EmitData.WorldContext = WorldContextObject;
 	FGESHandler::DefaultHandler()->EmitEvent(EmitData);
+}
+
+void UGlobalEventSystemBPLibrary::GESEmitTagEvent(UObject* WorldContextObject, FGameplayTag DomainedEventTag, bool bPinned /*= false*/)
+{
+	FGESEmitContext EmitData;
+	EmitData.bPinned = bPinned;
+	Conv_TagToDomainAndEvent(DomainedEventTag, EmitData.Domain, EmitData.Event);
+	EmitData.WorldContext = WorldContextObject;
+	FGESHandler::DefaultHandler()->EmitEvent(EmitData);
+}
+
+void UGlobalEventSystemBPLibrary::GESEmitTagEventOneParam(UObject* WorldContextObject, TFieldPath<FProperty> ParameterData, FGameplayTag DomainedEventTag, bool bPinned /*= false*/)
+{
+	//this never gets called due to custom thunk
 }
 
 void UGlobalEventSystemBPLibrary::GESUnpinEvent(UObject* WorldContextObject, const FString& Domain /*= TEXT("global.default")*/, const FString& Event /*= TEXT("")*/)
@@ -326,6 +378,19 @@ bool UGlobalEventSystemBPLibrary::Conv_PropToObject(const FGESWildcardProperty& 
 	{
 		UE_LOG(LogTemp, Warning, TEXT("UGlobalEventSystemBPLibrary::Conv_PropToObject %s is not an Object."), *InProp.Property->GetName());
 		return false;
+	}
+}
+
+void UGlobalEventSystemBPLibrary::Conv_TagToDomainAndEvent(FGameplayTag InTag, FString& OutDomain, FString& OutEvent)
+{
+	FString DomainAndEvent = InTag.GetTagName().ToString();
+
+	bool bFound = DomainAndEvent.Split(TEXT("."), &OutDomain, &OutEvent, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
+
+	if (!bFound)
+	{
+		OutDomain = TEXT("global.default");
+		OutEvent = DomainAndEvent;
 	}
 }
 
