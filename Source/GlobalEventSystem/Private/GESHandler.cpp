@@ -645,11 +645,11 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, const FString& Para
 		PropData.bHandleAllocation = true;
 	}
 
-	EmitToListenersWithData(PropData, [&PropData](const FGESEventListener& Listener)
+	EmitToListenersWithData(PropData, [&PropData, ParamData](const FGESEventListener& Listener)
 	{
 		if (FunctionHasValidParams(Listener.Function, FStrProperty::StaticClass(), PropData, Listener))
 		{
-			Listener.ReceiverWCO->ProcessEvent(Listener.Function, PropData.PropertyPtr);
+			Listener.ReceiverWCO->ProcessEvent(Listener.Function, PropData.PropertyPtr); // (void*)&ParamData);
 		}
 	});
 
@@ -694,7 +694,7 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, float ParamData)
 	{
 		if (FunctionHasValidParams(Listener.Function, FNumericProperty::StaticClass(), PropData, Listener))
 		{
-			Listener.ReceiverWCO->ProcessEvent(Listener.Function, &ParamData);// PropData.PropertyPtr);
+			Listener.ReceiverWCO->ProcessEvent(Listener.Function, PropData.PropertyPtr);// PropData.PropertyPtr);
 		}
 	});
 
