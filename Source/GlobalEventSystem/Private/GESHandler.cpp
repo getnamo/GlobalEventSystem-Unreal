@@ -388,6 +388,13 @@ void FGESHandler::EmitToListenersWithData(const FGESPropertyEmitContext& EmitDat
 		{
 			for (const FString& EventKey : WorldListener->WorldEvents)
 			{
+				//clean pinned events
+				FGESEvent& Event = EventMap[EventKey];
+				if (Event.bPinned)
+				{
+					Event.PinnedData.CleanupPinnedData();
+				}
+
 				DeleteEvent(EventKey);
 			}
 			WorldListener->WorldEvents.Empty();
