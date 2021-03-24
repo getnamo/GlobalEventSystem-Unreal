@@ -15,6 +15,13 @@ void FGESPinnedData::CopyPropertyToPinnedBuffer()
 void FGESPinnedData::CleanupPinnedData()
 {
 	PropertyData.Empty();
+
+	//Some properties are being allocated in C++, we need to clean them here
+	if (bHandlePropertyDeletion)
+	{
+		Property->SetFlags(RF_BeginDestroyed);
+		delete Property;
+	}
 	Property = nullptr;
 	PropertyPtr = nullptr;
 }
@@ -29,6 +36,7 @@ FGESPropertyEmitContext::FGESPropertyEmitContext()
 	Property = nullptr;
 	PropertyPtr = nullptr;
 	SpecificTarget = nullptr;
+	bHandleAllocation = false;
 }
 
 FGESPropertyEmitContext::FGESPropertyEmitContext(const FGESEmitContext& Other)

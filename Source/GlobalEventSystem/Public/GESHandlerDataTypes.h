@@ -8,11 +8,17 @@ struct FGESPinnedData
 	FProperty* Property;
 	void* PropertyPtr;
 	TArray<uint8> PropertyData;
+	bool bHandlePropertyDeletion;
 
 	FGESPinnedData()
 	{
 		Property = nullptr;
 		PropertyPtr = nullptr;
+		bHandlePropertyDeletion = false;
+	}
+	~FGESPinnedData()
+	{
+		CleanupPinnedData();
 	}
 	void CopyPropertyToPinnedBuffer();
 	void CleanupPinnedData();
@@ -94,6 +100,7 @@ struct FGESPropertyEmitContext : FGESEmitContext
 {
 	FProperty* Property;
 	void* PropertyPtr;
+	bool bHandleAllocation;
 
 	//NB: if we want a callback or pin emit
 	FGESEventListener* SpecificTarget;

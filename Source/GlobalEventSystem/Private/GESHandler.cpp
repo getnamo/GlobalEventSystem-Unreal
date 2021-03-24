@@ -87,11 +87,22 @@ void FGESHandler::CreateEvent(const FString& Domain, const FString& Event, bool 
 
 void FGESHandler::DeleteEvent(const FString& Domain, const FString& Event)
 {
-	EventMap.Remove(Key(Domain, Event));
+	DeleteEvent(Key(Domain, Event));
 }
 
 void FGESHandler::DeleteEvent(const FString& DomainAndEvent)
 {
+	//ensure any pinned data gets cleaned up on event deletion
+	if (EventMap.Contains(DomainAndEvent))
+	{
+		FGESEvent& Event = EventMap[DomainAndEvent];
+		if (Event.bPinned)
+		{
+			Event.PinnedData.CleanupPinnedData();
+		}
+	}
+
+	//remove the event
 	EventMap.Remove(DomainAndEvent);
 }
 
@@ -301,7 +312,10 @@ void FGESHandler::RemoveListener(const FString& Domain, const FString& Event, co
 	FString KeyString = Key(Domain, Event);
 	if (!EventMap.Contains(KeyString))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("FGESHandler::RemoveListener, tried to remove a listener from an event that doesn't exist. Ignored."));
+		if (Options.bLogStaleRemovals)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("FGESHandler::RemoveListener, tried to remove a listener from an event that doesn't exist (%s.%s). Ignored."), *Domain, *Event);
+		}
 		return;
 	}
 
@@ -415,6 +429,8 @@ void FGESHandler::EmitToListenersWithData(const FGESPropertyEmitContext& EmitDat
 			{
 				Event.PinnedData.CleanupPinnedData();
 			}
+			
+			Event.PinnedData.bHandlePropertyDeletion = EmitData.bHandleAllocation;
 			Event.PinnedData.Property = EmitData.Property;
 			Event.PinnedData.PropertyPtr = EmitData.PropertyPtr;
 			Event.PinnedData.CopyPropertyToPinnedBuffer();
@@ -423,6 +439,7 @@ void FGESHandler::EmitToListenersWithData(const FGESPropertyEmitContext& EmitDat
 		if (!Event.bPinned && EmitData.bPinned)
 		{
 			Event.PinnedData.CleanupPinnedData();
+			Event.PinnedData.bHandlePropertyDeletion = EmitData.bHandleAllocation;
 			Event.PinnedData.Property = EmitData.Property;
 			Event.PinnedData.PropertyPtr = EmitData.PropertyPtr;
 			Event.PinnedData.CopyPropertyToPinnedBuffer();
@@ -656,6 +673,10 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, float ParamData)
 
 	PropData.Property = FloatProperty;
 	PropData.PropertyPtr = &ParamData;// Buffer.GetData();
+	if (PropData.bPinned)
+	{
+		PropData.bHandleAllocation = true;
+	}
 
 	EmitToListenersWithData(PropData, [&PropData, &ParamData](const FGESEventListener& Listener)
 	{
