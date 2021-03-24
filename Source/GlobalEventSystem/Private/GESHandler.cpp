@@ -443,7 +443,7 @@ void FGESHandler::EmitToListenersWithData(const FGESPropertyEmitContext& EmitDat
 			{
 				//this listener is handled by lambda instead
 				FGESWildcardProperty Wrapper;
-				Wrapper.Property = EmitData.Property;
+				Wrapper.Property = EmitData.Property.Get();
 				Wrapper.PropertyPtr = EmitData.PropertyPtr;
 
 				Listener.LambdaFunction(Wrapper);
@@ -453,7 +453,7 @@ void FGESHandler::EmitToListenersWithData(const FGESPropertyEmitContext& EmitDat
 			{
 				//this listener is handled by wildcard event delegate instead
 				FGESWildcardProperty Wrapper;
-				Wrapper.Property = EmitData.Property;
+				Wrapper.Property = EmitData.Property.Get();
 				Wrapper.PropertyPtr = EmitData.PropertyPtr;
 				Listener.OnePropertyFunctionDelegate.ExecuteIfBound(Wrapper);
 				return;
@@ -487,7 +487,7 @@ void FGESHandler::EmitToListenersWithData(const FGESPropertyEmitContext& EmitDat
 				{
 					//this listener is handled by lambda instead
 					FGESWildcardProperty Wrapper;
-					Wrapper.Property = EmitData.Property;
+					Wrapper.Property = EmitData.Property.Get();
 					Wrapper.PropertyPtr = EmitData.PropertyPtr;
 
 					Listener.LambdaFunction(Wrapper);
@@ -497,7 +497,7 @@ void FGESHandler::EmitToListenersWithData(const FGESPropertyEmitContext& EmitDat
 				{
 					//this listener is handled by wildcard event delegate instead
 					FGESWildcardProperty Wrapper;
-					Wrapper.Property = EmitData.Property;
+					Wrapper.Property = EmitData.Property.Get();
 					Wrapper.PropertyPtr = EmitData.PropertyPtr;
 					Listener.OnePropertyFunctionDelegate.ExecuteIfBound(Wrapper);
 					continue;
@@ -559,7 +559,7 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, UStruct* Struct, vo
 	//SetPropertyValue<FStructProperty>()
 	//StructProperty->Struct//(Buffer.GetData(), ParamData);
 
-	PropData.Property = StructProperty;
+	PropData.Property = MakeShareable(StructProperty);
 	PropData.PropertyPtr = StructPtr;//Buffer.GetData();
 
 	EmitToListenersWithData(PropData, [&PropData, Struct, StructPtr, bValidateStructs](const FGESEventListener& Listener)
@@ -613,7 +613,7 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, const FString& Para
 
 	StrProperty->SetPropertyValue(Buffer.GetData(), ParamData);
 
-	PropData.Property = StrProperty;
+	PropData.Property = MakeShareable(StrProperty);
 	PropData.PropertyPtr = Buffer.GetData();
 
 	EmitToListenersWithData(PropData, [&PropData](const FGESEventListener& Listener)
@@ -644,17 +644,12 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, float ParamData)
 {
 	FGESPropertyEmitContext PropData(EmitData);
 
-	FGESWildcardProperty WrapperProperty;
-
-	FFloatProperty* FloatProperty =
-		new FFloatProperty(FFieldVariant(EmitData.WorldContext->GetClass()),//WrapperProperty),
-			TEXT("FloatValue"),
-			EObjectFlags::RF_Public | EObjectFlags::RF_LoadCompleted);
-
 	TArray<uint8> Buffer;
 	Buffer.SetNum(4);
 
-	PropData.Property = FloatProperty;
+	PropData.Property = MakeShareable(new FFloatProperty(FFieldVariant(EmitData.WorldContext->GetClass()),//WrapperProperty),
+		TEXT("FloatValue"),
+		EObjectFlags::RF_Public | EObjectFlags::RF_Transient));
 	PropData.PropertyPtr = &ParamData;// Buffer.GetData();
 
 	EmitToListenersWithData(PropData, [&PropData, &ParamData](const FGESEventListener& Listener)
@@ -666,10 +661,10 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, float ParamData)
 	});
 
 	//cleanup if not pinned. TODO: handle pinned cleanup...
-	if (!EmitData.bPinned)
+	/*if (!EmitData.bPinned)
 	{
 		delete FloatProperty;
-	}
+	}*/
 }
 
 void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, int32 ParamData)
@@ -681,7 +676,7 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, int32 ParamData)
 			TEXT("IntValue"),
 			EObjectFlags::RF_Transient);
 
-	PropData.Property = IntProperty;
+	PropData.Property = MakeShareable(IntProperty);
 	PropData.PropertyPtr = &ParamData;
 
 	EmitToListenersWithData(PropData, [&PropData](const FGESEventListener& Listener)
@@ -704,7 +699,7 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, bool ParamData)
 			TEXT("BoolValue"),
 			EObjectFlags::RF_Transient);
 
-	PropData.Property = BoolProperty;
+	PropData.Property = MakeShareable(BoolProperty);
 	PropData.PropertyPtr = &ParamData;
 
 	EmitToListenersWithData(PropData, [&PropData](const FGESEventListener& Listener)
@@ -757,7 +752,7 @@ bool FGESHandler::EmitPropertyEvent(const FGESPropertyEmitContext& EmitData)
 		}
 		return false;
 	}
-	FProperty* ParameterProp = EmitData.Property;
+	FProperty* ParameterProp = EmitData.Property.Get();
 	void* PropPtr = EmitData.PropertyPtr;
 
 	//no params specified
@@ -769,7 +764,7 @@ bool FGESHandler::EmitPropertyEvent(const FGESPropertyEmitContext& EmitData)
 				if (Listener.bIsBoundToLambda && Listener.LambdaFunction != nullptr)
 				{
 					FGESWildcardProperty Wrapper;
-					Wrapper.Property = EmitData.Property;
+					Wrapper.Property = EmitData.Property.Get();
 					Wrapper.PropertyPtr = EmitData.PropertyPtr;
 
 					Listener.LambdaFunction(Wrapper);
@@ -779,7 +774,7 @@ bool FGESHandler::EmitPropertyEvent(const FGESPropertyEmitContext& EmitData)
 				if (Listener.bIsBoundToDelegate)
 				{
 					FGESWildcardProperty Wrapper;
-					Wrapper.Property = EmitData.Property;
+					Wrapper.Property = EmitData.Property.Get();
 					Wrapper.PropertyPtr = EmitData.PropertyPtr;
 					Listener.OnePropertyFunctionDelegate.ExecuteIfBound(Wrapper);
 					return;
@@ -857,7 +852,7 @@ void FGESHandler::EmitSubPropertyEvent(const FGESPropertyEmitContext& EmitData)
 			if (Listener.bIsBoundToLambda && Listener.LambdaFunction != nullptr)
 			{
 				FGESWildcardProperty Wrapper;
-				Wrapper.Property = EmitData.Property;
+				Wrapper.Property = EmitData.Property.Get();
 				Wrapper.PropertyPtr = EmitData.PropertyPtr;
 
 				Listener.LambdaFunction(Wrapper);
@@ -867,7 +862,7 @@ void FGESHandler::EmitSubPropertyEvent(const FGESPropertyEmitContext& EmitData)
 			if (Listener.bIsBoundToDelegate)
 			{
 				FGESWildcardProperty Wrapper;
-				Wrapper.Property = EmitData.Property;
+				Wrapper.Property = EmitData.Property.Get();
 				Wrapper.PropertyPtr = EmitData.PropertyPtr;
 				Listener.OnePropertyFunctionDelegate.ExecuteIfBound(Wrapper);
 				return;

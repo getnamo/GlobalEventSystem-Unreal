@@ -5,7 +5,7 @@
 /** Struct to hold pinned property data */
 struct FGESPinnedData
 {
-	FProperty* Property;
+	TSharedPtr<FProperty> Property;
 	void* PropertyPtr;
 	TArray<uint8> PropertyData;
 
@@ -92,7 +92,7 @@ struct FGESEvent : FGESEmitContext
 //Emit specialization with property pointers
 struct FGESPropertyEmitContext : FGESEmitContext
 {
-	FProperty* Property;
+	TSharedPtr<FProperty> Property;
 	void* PropertyPtr;
 
 	//NB: if we want a callback or pin emit

@@ -161,7 +161,7 @@ class GLOBALEVENTSYSTEM_API UGlobalEventSystemBPLibrary : public UBlueprintFunct
 		FProperty* ParameterProp = CastField<FProperty>(Stack.MostRecentProperty);
 		void* PropPtr = Stack.MostRecentPropertyAddress;
 
-		EmitData.Property = ParameterProp;
+		EmitData.Property = MakeShareable(ParameterProp);
 		EmitData.PropertyPtr = PropPtr;
 
 		Stack.StepCompiledIn<FBoolProperty>(&EmitData.bPinned);
@@ -186,7 +186,7 @@ class GLOBALEVENTSYSTEM_API UGlobalEventSystemBPLibrary : public UBlueprintFunct
 		FProperty* ParameterProp = CastField<FProperty>(Stack.MostRecentProperty);
 		void* PropPtr = Stack.MostRecentPropertyAddress;
 
-		EmitData.Property = ParameterProp;
+		EmitData.Property = MakeShareable(ParameterProp);
 		EmitData.PropertyPtr = PropPtr;
 		
 		FGameplayTag Tag;

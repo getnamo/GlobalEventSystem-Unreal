@@ -52,13 +52,13 @@ void UGESBaseReceiverComponent::HandleInternalEvent(const FGESWildcardProperty& 
 
 	if (bPinInternalDataForPolling)
 	{
-		PinnedData.Property = WildcardProperty.Property.Get();
+		PinnedData.Property = MakeShareable(WildcardProperty.Property.Get());
 		PinnedData.PropertyPtr = WildcardProperty.PropertyPtr;
 
 		//We need to use pinning to catch non-pinned data emitted
 		PinnedData.CopyPropertyToPinnedBuffer();
 
-		LastReceivedProperty.Property = PinnedData.Property;
+		LastReceivedProperty.Property = PinnedData.Property.Get();
 		LastReceivedProperty.PropertyPtr = PinnedData.PropertyPtr;
 	}
 
