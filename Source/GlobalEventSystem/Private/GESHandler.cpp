@@ -497,10 +497,6 @@ void FGESHandler::EmitToListenersWithData(const FGESPropertyEmitContext& EmitDat
 				{
 					//this listener is handled by wildcard event delegate instead
 					FGESWildcardProperty Wrapper;
-				
-					/*
-					* NB: Assigning this value will call operator= and generate of TFieldPath. It requires a UStruct owner!
-					*/
 					Wrapper.Property = EmitData.Property;
 					Wrapper.PropertyPtr = EmitData.PropertyPtr;
 					Listener.OnePropertyFunctionDelegate.ExecuteIfBound(Wrapper);
@@ -657,11 +653,6 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, float ParamData)
 
 	TArray<uint8> Buffer;
 	Buffer.SetNum(4);
-
-	//void* BufferPtr = FloatProperty->ContainerPtrToValuePtr<float>(&Buffer);
-	//FloatProperty->SetFloatingPointPropertyValue(BufferPtr.GetData(), ParamData);
-
-	//TODO: CONTINUE HERE WITH WRAPPING PROPERTIES AROUND RAW DATA
 
 	PropData.Property = FloatProperty;
 	PropData.PropertyPtr = &ParamData;// Buffer.GetData();
