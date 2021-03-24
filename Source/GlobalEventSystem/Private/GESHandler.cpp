@@ -561,23 +561,27 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, UStruct* Struct, vo
 	
 	//We have no property context, make a new property
 	FStructProperty* StructProperty =
-		new FStructProperty(FFieldVariant(EmitData.WorldContext),
+		new FStructProperty(FFieldVariant(EmitData.WorldContext->GetClass()),
 			TEXT("StructValue"),
-			EObjectFlags::RF_Transient,
+			EObjectFlags::RF_Public | EObjectFlags::RF_LoadCompleted,
 			0,
 			EPropertyFlags::CPF_Transient,
 			Cast<UScriptStruct>(Struct));
 
 	//Wrap our FString into a buffer we can share
-	TArray<uint8> Buffer;
-	int32 Size = Struct->GetStructureSize();
-	Buffer.SetNum(Size);
+	//TArray<uint8> Buffer;
+	//int32 Size = Struct->GetStructureSize();
+	//Buffer.SetNum(Size);
 
 	//SetPropertyValue<FStructProperty>()
 	//StructProperty->Struct//(Buffer.GetData(), ParamData);
 
 	PropData.Property = StructProperty;
 	PropData.PropertyPtr = StructPtr;//Buffer.GetData();
+	if (PropData.bPinned)
+	{
+		PropData.bHandleAllocation = true;
+	}
 
 	EmitToListenersWithData(PropData, [&PropData, Struct, StructPtr, bValidateStructs](const FGESEventListener& Listener)
 	{
@@ -610,7 +614,11 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, UStruct* Struct, vo
 		}
 	});
 
-	delete StructProperty;
+
+	if (!EmitData.bPinned)
+	{
+		delete StructProperty;
+	}
 }
 
 void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, const FString& ParamData)
@@ -619,19 +627,23 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, const FString& Para
 
 	//We have no property context, make a new property
 	FStrProperty* StrProperty = 
-		new FStrProperty(FFieldVariant(EmitData.WorldContext),
+		new FStrProperty(FFieldVariant(EmitData.WorldContext->GetClass()),
 			TEXT("StringValue"),
-			EObjectFlags::RF_Transient);
+			EObjectFlags::RF_Public | EObjectFlags::RF_LoadCompleted);
 
 	//Wrap our FString into a buffer we can share
 	TArray<uint8> Buffer;
-	int32 Size = ParamData.Len() + 1;
+	int32 Size = ParamData.Len();// +1;
 	Buffer.SetNum(Size);
 
-	StrProperty->SetPropertyValue(Buffer.GetData(), ParamData);
+	StrProperty->SetPropertyValue(Buffer.GetData(), *ParamData);
 
 	PropData.Property = StrProperty;
-	PropData.PropertyPtr = Buffer.GetData();
+	PropData.PropertyPtr = Buffer.GetData();	//(void*)&ParamData;
+	if (PropData.bPinned)
+	{
+		PropData.bHandleAllocation = true;
+	}
 
 	EmitToListenersWithData(PropData, [&PropData](const FGESEventListener& Listener)
 	{
@@ -641,7 +653,10 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, const FString& Para
 		}
 	});
 
-	delete StrProperty;
+	if (!EmitData.bPinned)
+	{
+		delete StrProperty;
+	}
 }
 
 void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, UObject* ParamData)
@@ -668,9 +683,6 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, float ParamData)
 			TEXT("FloatValue"),
 			EObjectFlags::RF_Public | EObjectFlags::RF_LoadCompleted);
 
-	TArray<uint8> Buffer;
-	Buffer.SetNum(4);
-
 	PropData.Property = FloatProperty;
 	PropData.PropertyPtr = &ParamData;// Buffer.GetData();
 	if (PropData.bPinned)
@@ -686,7 +698,6 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, float ParamData)
 		}
 	});
 
-	//cleanup if not pinned. TODO: handle pinned cleanup...
 	if (!EmitData.bPinned)
 	{
 		delete FloatProperty;
@@ -697,13 +708,17 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, int32 ParamData)
 {
 	FGESPropertyEmitContext PropData(EmitData);
 
-	FNumericProperty* IntProperty =
-		new FNumericProperty(FFieldVariant(EmitData.WorldContext),
+	FIntProperty* IntProperty =
+		new FIntProperty(FFieldVariant(EmitData.WorldContext->GetClass()),
 			TEXT("IntValue"),
-			EObjectFlags::RF_Transient);
+			EObjectFlags::RF_Public | EObjectFlags::RF_LoadCompleted);
 
 	PropData.Property = IntProperty;
 	PropData.PropertyPtr = &ParamData;
+	if (PropData.bPinned)
+	{
+		PropData.bHandleAllocation = true;
+	}
 
 	EmitToListenersWithData(PropData, [&PropData](const FGESEventListener& Listener)
 	{
@@ -713,20 +728,27 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, int32 ParamData)
 		}
 	});
 
-	delete IntProperty;
+	if (!EmitData.bPinned)
+	{
+		delete IntProperty;
+	}
 }
 
 void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, bool ParamData)
 {
 	FGESPropertyEmitContext PropData(EmitData);
 
-	FNumericProperty* BoolProperty =
-		new FNumericProperty(FFieldVariant(EmitData.WorldContext),
+	FBoolProperty* BoolProperty =
+		new FBoolProperty(FFieldVariant(EmitData.WorldContext->GetClass()),
 			TEXT("BoolValue"),
-			EObjectFlags::RF_Transient);
+			EObjectFlags::RF_Public | EObjectFlags::RF_LoadCompleted);
 
 	PropData.Property = BoolProperty;
 	PropData.PropertyPtr = &ParamData;
+	if (PropData.bPinned)
+	{
+		PropData.bHandleAllocation = true;
+	}
 
 	EmitToListenersWithData(PropData, [&PropData](const FGESEventListener& Listener)
 	{
@@ -736,7 +758,10 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, bool ParamData)
 		}
 	});
 
-	delete BoolProperty;
+	if (!EmitData.bPinned)
+	{
+		delete BoolProperty;
+	}
 }
 
 void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, const FName& ParamData)

@@ -19,7 +19,10 @@ void FGESPinnedData::CleanupPinnedData()
 	//Some properties are being allocated in C++, we need to clean them here
 	if (bHandlePropertyDeletion)
 	{
-		Property->SetFlags(RF_BeginDestroyed);
+		if (Property != nullptr)
+		{
+			Property->SetFlags(RF_BeginDestroyed);
+		}
 		delete Property;
 	}
 	Property = nullptr;

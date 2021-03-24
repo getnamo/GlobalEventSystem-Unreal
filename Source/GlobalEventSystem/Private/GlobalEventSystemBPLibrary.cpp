@@ -166,7 +166,7 @@ bool UGlobalEventSystemBPLibrary::Conv_PropToInt(const FGESWildcardProperty& InP
 	if (InProp.Property->IsA<FNumericProperty>())
 	{
 		FNumericProperty* Property = CastField<FNumericProperty>(InProp.Property.Get());
-		if (Property->IsFloatingPoint())
+		if (!Property->IsFloatingPoint())
 		{
 			OutInt = Property->GetSignedIntPropertyValue(InProp.PropertyPtr);
 			return true;
