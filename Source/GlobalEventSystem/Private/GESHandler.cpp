@@ -497,6 +497,10 @@ void FGESHandler::EmitToListenersWithData(const FGESPropertyEmitContext& EmitDat
 				{
 					//this listener is handled by wildcard event delegate instead
 					FGESWildcardProperty Wrapper;
+				
+					/*
+					* NB: Assigning this value will call operator= and generate of TFieldPath. It requires a UStruct owner!
+					*/
 					Wrapper.Property = EmitData.Property;
 					Wrapper.PropertyPtr = EmitData.PropertyPtr;
 					Listener.OnePropertyFunctionDelegate.ExecuteIfBound(Wrapper);
@@ -644,10 +648,12 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, float ParamData)
 {
 	FGESPropertyEmitContext PropData(EmitData);
 
+	FGESWildcardProperty WrapperProperty;
+
 	FFloatProperty* FloatProperty =
-		new FFloatProperty(FFieldVariant(EmitData.WorldContext),
+		new FFloatProperty(FFieldVariant(EmitData.WorldContext->GetClass()),//WrapperProperty),
 			TEXT("FloatValue"),
-			EObjectFlags::RF_Transient);
+			EObjectFlags::RF_Public | EObjectFlags::RF_LoadCompleted);
 
 	TArray<uint8> Buffer;
 	Buffer.SetNum(4);
@@ -668,7 +674,11 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, float ParamData)
 		}
 	});
 
-	delete FloatProperty;
+	//cleanup if not pinned. TODO: handle pinned cleanup...
+	if (!EmitData.bPinned)
+	{
+		delete FloatProperty;
+	}
 }
 
 void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, int32 ParamData)
