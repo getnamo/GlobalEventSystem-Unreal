@@ -87,11 +87,19 @@ void FGESHandler::CreateEvent(const FString& Domain, const FString& Event, bool 
 
 void FGESHandler::DeleteEvent(const FString& Domain, const FString& Event)
 {
-	EventMap.Remove(Key(Domain, Event));
+	DeleteEvent(Key(Domain, Event));
 }
 
 void FGESHandler::DeleteEvent(const FString& DomainAndEvent)
 {
+	if (EventMap.Contains(DomainAndEvent)) 
+	{
+		FGESEvent& Event = EventMap[DomainAndEvent];
+		if (Event.bPinned)
+		{
+			Event.PinnedData.CleanupPinnedData();
+		}
+	}
 	EventMap.Remove(DomainAndEvent);
 }
 
@@ -388,13 +396,6 @@ void FGESHandler::EmitToListenersWithData(const FGESPropertyEmitContext& EmitDat
 		{
 			for (const FString& EventKey : WorldListener->WorldEvents)
 			{
-				//clean pinned events
-				FGESEvent& Event = EventMap[EventKey];
-				if (Event.bPinned)
-				{
-					Event.PinnedData.CleanupPinnedData();
-				}
-
 				DeleteEvent(EventKey);
 			}
 			WorldListener->WorldEvents.Empty();
@@ -417,11 +418,16 @@ void FGESHandler::EmitToListenersWithData(const FGESPropertyEmitContext& EmitDat
 		if (Event.bPinned && EmitData.bPinned)
 		{
 			//cleanup if different
-			if (EmitData.Property != Event.PinnedData.Property ||
-				EmitData.PropertyPtr != Event.PinnedData.PropertyPtr)
+			if (EmitData.PropertyPtr != Event.PinnedData.PropertyPtr)
+			{
+				Event.PinnedData.PropertyData.Empty();	
+			}
+
+			if (EmitData.Property.Get() != Event.PinnedData.Property.Get())
 			{
 				Event.PinnedData.CleanupPinnedData();
 			}
+
 			Event.PinnedData.Property = EmitData.Property;
 			Event.PinnedData.PropertyPtr = EmitData.PropertyPtr;
 			Event.PinnedData.CopyPropertyToPinnedBuffer();

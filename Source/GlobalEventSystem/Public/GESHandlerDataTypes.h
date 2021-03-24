@@ -14,6 +14,11 @@ struct FGESPinnedData
 		Property = nullptr;
 		PropertyPtr = nullptr;
 	}
+	~FGESPinnedData()
+	{
+		CleanupPinnedData();
+	}
+
 	void CopyPropertyToPinnedBuffer();
 	void CleanupPinnedData();
 };
@@ -94,6 +99,7 @@ struct FGESPropertyEmitContext : FGESEmitContext
 {
 	TSharedPtr<FProperty> Property;
 	void* PropertyPtr;
+	bool bHandleAllocation;	//for case of c++ pinned properties
 
 	//NB: if we want a callback or pin emit
 	FGESEventListener* SpecificTarget;
