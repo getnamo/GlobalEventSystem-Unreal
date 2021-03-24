@@ -633,13 +633,12 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, const FString& Para
 
 	//Wrap our FString into a buffer we can share
 	TArray<uint8> Buffer;
-	int32 Size = ParamData.Len();// +1;
-	Buffer.SetNum(Size);
+	Buffer.SetNum(ParamData.GetAllocatedSize());
 
-	StrProperty->SetPropertyValue(Buffer.GetData(), *ParamData);
+	StrProperty->SetPropertyValue_InContainer(Buffer.GetData(), ParamData);
 
 	PropData.Property = StrProperty;
-	PropData.PropertyPtr = Buffer.GetData();	//(void*)&ParamData;
+	PropData.PropertyPtr = Buffer.GetData();
 	if (PropData.bPinned)
 	{
 		PropData.bHandleAllocation = true;
@@ -649,7 +648,7 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, const FString& Para
 	{
 		if (FunctionHasValidParams(Listener.Function, FStrProperty::StaticClass(), PropData, Listener))
 		{
-			Listener.ReceiverWCO->ProcessEvent(Listener.Function, PropData.PropertyPtr); // (void*)&ParamData);
+			Listener.ReceiverWCO->ProcessEvent(Listener.Function, PropData.PropertyPtr);// (void*)*MutableString); // (void*)&ParamData);
 		}
 	});
 
