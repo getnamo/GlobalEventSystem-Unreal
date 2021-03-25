@@ -288,7 +288,15 @@ bool UGlobalEventSystemBPLibrary::Conv_PropToStringRef(const FGESWildcardPropert
 		{
 			FObjectProperty* Property = CastField<FObjectProperty>(InProp.Property.Get());
 			UObject* Object = Property->GetPropertyValue(InProp.PropertyPtr);
-			OutString = Object->GetName() + TEXT(", type: ") + Object->GetClass()->GetName();
+
+			if (Object->IsValidLowLevelFast())
+			{
+				OutString = Object->GetName() + TEXT(", type: ") + Object->GetClass()->GetName();
+			}
+			else
+			{
+				OutString = TEXT("Null Object");
+			}
 		}
 		else if (InProp.Property->IsA<FStructProperty>())
 		{

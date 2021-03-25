@@ -3,13 +3,14 @@
 void FGESPinnedData::CopyPropertyToPinnedBuffer()
 {
 	//Copy this property data to temp
-	//Property->AddToRoot();
-	int32 Num = Property->GetSize();
-	PropertyData.SetNumUninitialized(Num);
-	FMemory::Memcpy(PropertyData.GetData(), PropertyPtr, Num);
+	{
+		int32 Num = Property->GetSize();
+		PropertyData.SetNumUninitialized(Num);
+		FMemory::Memcpy(PropertyData.GetData(), PropertyPtr, Num);
 
-	//reset pointer to new copy
-	PropertyPtr = PropertyData.GetData();
+		//reset pointer to new copy
+		PropertyPtr = PropertyData.GetData();
+	}
 }
 
 void FGESPinnedData::CleanupPinnedData()

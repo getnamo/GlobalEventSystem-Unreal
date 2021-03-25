@@ -125,7 +125,7 @@ class GLOBALEVENTSYSTEM_API UGlobalEventSystemBPLibrary : public UBlueprintFunct
 	static bool Conv_PropToBool(const FGESWildcardProperty& InProp, bool& OutBool);
 
 	/** Convert wildcard property into a string (reference) */
-	UFUNCTION(BlueprintPure, meta = (DisplayName = "To String By Ref (Wildcard Property)", BlueprintAutocast), Category = "Utilities|GES")
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "To String Ref with status (Wildcard Property)"), Category = "Utilities|GES")
 	static bool Conv_PropToStringRef(const FGESWildcardProperty& InProp, FString& OutString);
 
 	/** Will still warn, but won't return a boolean for conversion status, used for auto-casting to print strings for debugging */

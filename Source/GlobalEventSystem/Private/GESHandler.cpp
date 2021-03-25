@@ -563,27 +563,28 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, UStruct* Struct, vo
 	FStructProperty* StructProperty =
 		new FStructProperty(FFieldVariant(EmitData.WorldContext->GetClass()),
 			TEXT("StructValue"),
-			EObjectFlags::RF_Public | EObjectFlags::RF_LoadCompleted,
+			EObjectFlags::RF_Transient,// | EObjectFlags::RF_LoadCompleted,
 			0,
 			EPropertyFlags::CPF_Transient,
 			Cast<UScriptStruct>(Struct));
 
-	//Wrap our FString into a buffer we can share
-	//TArray<uint8> Buffer;
-	//int32 Size = Struct->GetStructureSize();
-	//Buffer.SetNum(Size);
+	//TODO: FIX STRUCT ISSUES and then we're gucci
 
-	//SetPropertyValue<FStructProperty>()
-	//StructProperty->Struct//(Buffer.GetData(), ParamData);
+	//Store our struct data in a buffer we can reference
+	TArray<uint8> Buffer;
+	int32 Size = Struct->GetStructureSize();
+	Buffer.SetNum(Size);
+
+	FPlatformMemory::Memcpy(Buffer.GetData(), StructPtr, Size);
 
 	PropData.Property = StructProperty;
-	PropData.PropertyPtr = StructPtr;//Buffer.GetData();
+	PropData.PropertyPtr = Buffer.GetData();
 	if (PropData.bPinned)
 	{
 		PropData.bHandleAllocation = true;
 	}
 
-	EmitToListenersWithData(PropData, [&PropData, Struct, StructPtr, bValidateStructs](const FGESEventListener& Listener)
+	EmitToListenersWithData(PropData, [&PropData, Struct, &Buffer, bValidateStructs](const FGESEventListener& Listener)
 	{
 		if (FunctionHasValidParams(Listener.Function, FStructProperty::StaticClass(), PropData, Listener))
 		{
@@ -596,7 +597,7 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, UStruct* Struct, vo
 				FStructProperty* StructProperty = CastField<FStructProperty>(Properties[0]);
 				if (StructProperty->Struct == Struct)
 				{
-					Listener.ReceiverWCO->ProcessEvent(Listener.Function, StructPtr);
+					Listener.ReceiverWCO->ProcessEvent(Listener.Function, (void*)Buffer.GetData());
 				}
 				else
 				{
@@ -609,7 +610,7 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, UStruct* Struct, vo
 			//No validation, e.g. vector-> rotator fill is accepted
 			else
 			{
-				Listener.ReceiverWCO->ProcessEvent(Listener.Function, StructPtr);
+				Listener.ReceiverWCO->ProcessEvent(Listener.Function, (void*)Buffer.GetData());
 			}
 		}
 	});
@@ -660,15 +661,37 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, const FString& Para
 
 void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, UObject* ParamData)
 {
-	EmitToListenersWithData(EmitData, [&EmitData, ParamData](const FGESEventListener& Listener)
+	FGESPropertyEmitContext PropData(EmitData);
+
+	FObjectProperty* ObjectProperty =
+		new FObjectProperty(FFieldVariant(EmitData.WorldContext->GetClass()),
+			TEXT("ObjectValue"),
+			EObjectFlags::RF_Public | EObjectFlags::RF_LoadCompleted);
+
+	//wrapper required to avoid copied pointer to become the first function
+	FGESDynamicArg ParamWrapper;
+	ParamWrapper.Arg01 = ParamData;
+
+	PropData.Property = ObjectProperty;
+	PropData.PropertyPtr = (void*)&ParamWrapper;
+	
+	if (PropData.bPinned)
 	{
-		if (FunctionHasValidParams(Listener.Function, FObjectProperty::StaticClass(), EmitData, Listener))
+		PropData.bHandleAllocation = true;
+	}
+
+	EmitToListenersWithData(PropData, [&PropData, ParamWrapper](const FGESEventListener& Listener)
 		{
-			FGESDynamicArg ParamWrapper;
-			ParamWrapper.Arg01 = ParamData;
-			Listener.ReceiverWCO->ProcessEvent(Listener.Function, &ParamWrapper);
-		}
-	});
+			if (FunctionHasValidParams(Listener.Function, FNumericProperty::StaticClass(), PropData, Listener))
+			{
+				Listener.ReceiverWCO->ProcessEvent(Listener.Function, (void*)&ParamWrapper);// PropData.PropertyPtr);
+			}
+		});
+
+	if (!EmitData.bPinned)
+	{
+		delete ObjectProperty;
+	}
 }
 
 void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, float ParamData)
