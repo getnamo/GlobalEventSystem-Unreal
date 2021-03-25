@@ -183,11 +183,11 @@ class GLOBALEVENTSYSTEM_API UGlobalEventSystemBPLibrary : public UBlueprintFunct
 
 		//Determine wildcard property
 		Stack.Step(Stack.Object, NULL);
-		FProperty* ParameterProp = CastField<FProperty>(Stack.MostRecentProperty);
-		void* PropPtr = Stack.MostRecentPropertyAddress;
-
-		EmitData.Property = ParameterProp;
-		EmitData.PropertyPtr = PropPtr;
+		if (Stack.MostRecentProperty != nullptr)
+		{
+			EmitData.Property = CastField<FProperty>(Stack.MostRecentProperty);
+			EmitData.PropertyPtr = Stack.MostRecentPropertyAddress;
+		}
 		
 		FGameplayTag Tag;
 		Stack.StepCompiledIn<FStructProperty>(&Tag);
