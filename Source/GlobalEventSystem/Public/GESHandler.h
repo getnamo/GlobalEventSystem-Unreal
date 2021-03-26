@@ -125,6 +125,9 @@ private:
 
 	//internal helper for in-context data filling for listeners
 	void EmitToListenersWithData(const FGESPropertyEmitContext& EmitData, TFunction<void(const FGESEventListener&)> DataFillCallback);
+	//internal emitter to each listener
+	bool EmitToListenerWithData(const FGESPropertyEmitContext& EmitData, const FGESEventListener& Listener,
+		TFunction<void(const FGESEventListener&)>& DataFillCallback);
 
 	//internal overloads
 	void EmitSubPropertyEvent(const FGESPropertyEmitContext& EmitData);

@@ -453,43 +453,14 @@ void FGESHandler::EmitToListenersWithData(const FGESPropertyEmitContext& EmitDat
 	{
 		FGESEventListener Listener = *EmitData.SpecificTarget;
 
-		//Check validity of receiver and function and call the function
-		if (Listener.ReceiverWCO->IsValidLowLevelFast())
+		//stale listener, remove it
+		if (!Listener.ReceiverWCO->IsValidLowLevelFast())
 		{
-			if (Listener.bIsBoundToLambda && Listener.LambdaFunction != nullptr)
-			{
-				//this listener is handled by lambda instead
-				FGESWildcardProperty Wrapper;
-				Wrapper.Property = EmitData.Property;
-				Wrapper.PropertyPtr = EmitData.PropertyPtr;
-
-				Listener.LambdaFunction(Wrapper);
-				return;
-			}
-			if (Listener.bIsBoundToDelegate)
-			{
-				//this listener is handled by wildcard event delegate instead
-				FGESWildcardProperty Wrapper;
-				Wrapper.Property = EmitData.Property;
-				Wrapper.PropertyPtr = EmitData.PropertyPtr;
-				Listener.OnePropertyFunctionDelegate.ExecuteIfBound(Wrapper);
-				return;
-			}
-
-			UFunction* BPFunction = Listener.ReceiverWCO->FindFunction(FName(*Listener.FunctionName));
-			if (BPFunction != nullptr)
-			{
-				DataFillCallback(Listener);
-			}
-			else
-			{
-				UE_LOG(LogTemp, Warning, TEXT("FGESHandler::EmitEvent: Function not found '%s'"), *Listener.FunctionName);
-			}
+			RemovalArray.Add(&Listener);
 		}
 		else
 		{
-			//stale listener, remove it
-			RemovalArray.Add(&Listener);
+			EmitToListenerWithData(EmitData, Listener, DataFillCallback);
 		}
 	}
 	//emit to all targets
@@ -497,43 +468,14 @@ void FGESHandler::EmitToListenersWithData(const FGESPropertyEmitContext& EmitDat
 	{
 		for (FGESEventListener& Listener : Event.Listeners)
 		{
-			//Check validity of receiver and function and call the function
-			if (Listener.ReceiverWCO->IsValidLowLevelFast())
+			//stale listener, remove it
+			if (!Listener.ReceiverWCO->IsValidLowLevelFast())
 			{
-				if (Listener.bIsBoundToLambda && Listener.LambdaFunction != nullptr)
-				{
-					//this listener is handled by lambda instead
-					FGESWildcardProperty Wrapper;
-					Wrapper.Property = EmitData.Property;
-					Wrapper.PropertyPtr = EmitData.PropertyPtr;
-
-					Listener.LambdaFunction(Wrapper);
-					continue;
-				}
-				if (Listener.bIsBoundToDelegate)
-				{
-					//this listener is handled by wildcard event delegate instead
-					FGESWildcardProperty Wrapper;
-					Wrapper.Property = EmitData.Property;
-					Wrapper.PropertyPtr = EmitData.PropertyPtr;
-					Listener.OnePropertyFunctionDelegate.ExecuteIfBound(Wrapper);
-					continue;
-				}
-
-				UFunction* BPFunction = Listener.ReceiverWCO->FindFunction(FName(*Listener.FunctionName));
-				if (BPFunction != nullptr)
-				{
-					DataFillCallback(Listener);
-				}
-				else
-				{
-					UE_LOG(LogTemp, Warning, TEXT("FGESHandler::EmitEvent: Function not found '%s'"), *Listener.FunctionName);
-				}
+				RemovalArray.Add(&Listener);
 			}
 			else
 			{
-				//stale listener, remove it
-				RemovalArray.Add(&Listener);
+				EmitToListenerWithData(EmitData, Listener, DataFillCallback);
 			}
 		}
 	}
@@ -554,6 +496,46 @@ void FGESHandler::EmitToListenersWithData(const FGESPropertyEmitContext& EmitDat
 	}
 }
 
+bool FGESHandler::EmitToListenerWithData(const FGESPropertyEmitContext& EmitData, const FGESEventListener& Listener, TFunction<void(const FGESEventListener&)>& DataFillCallback)
+{
+	if (Listener.ReceiverWCO->IsValidLowLevelFast())
+	{
+		if (Listener.bIsBoundToLambda && Listener.LambdaFunction != nullptr)
+		{
+			//Opt1) this listener is handled by lambda
+			FGESWildcardProperty Wrapper;
+			Wrapper.Property = EmitData.Property;
+			Wrapper.PropertyPtr = EmitData.PropertyPtr;
+
+			Listener.LambdaFunction(Wrapper);
+			return true;
+		}
+		if (Listener.bIsBoundToDelegate)
+		{
+			//Opt2) this listener is handled by wildcard event delegate
+			FGESWildcardProperty Wrapper;
+			Wrapper.Property = EmitData.Property;
+			Wrapper.PropertyPtr = EmitData.PropertyPtr;
+			Listener.OnePropertyFunctionDelegate.ExecuteIfBound(Wrapper);
+			return true;
+		}
+
+		UFunction* BPFunction = Listener.ReceiverWCO->FindFunction(FName(*Listener.FunctionName));
+		if (BPFunction != nullptr)
+		{
+			//Opt3) listener is handled by function bind by name
+			DataFillCallback(Listener);
+			return true;
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("FGESHandler::EmitEvent: Function not found '%s'"), *Listener.FunctionName);
+			return false;
+		}
+	}
+	return false;
+}
+
 void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, UStruct* Struct, void* StructPtr)
 {
 	bool bValidateStructs = Options.bValidateStructTypes;
@@ -563,12 +545,10 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, UStruct* Struct, vo
 	FStructProperty* StructProperty =
 		new FStructProperty(FFieldVariant(EmitData.WorldContext->GetClass()),
 			TEXT("StructValue"),
-			EObjectFlags::RF_Transient,// | EObjectFlags::RF_LoadCompleted,
+			EObjectFlags::RF_Public | EObjectFlags::RF_LoadCompleted,// | EObjectFlags::RF_LoadCompleted,
 			0,
-			EPropertyFlags::CPF_Transient,
+			EPropertyFlags::CPF_Edit | CPF_BlueprintVisible,
 			Cast<UScriptStruct>(Struct));
-
-	//TODO: FIX STRUCT ISSUES and then we're gucci
 
 	//Store our struct data in a buffer we can reference
 	TArray<uint8> Buffer;
@@ -597,7 +577,7 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, UStruct* Struct, vo
 				FStructProperty* StructProperty = CastField<FStructProperty>(Properties[0]);
 				if (StructProperty->Struct == Struct)
 				{
-					Listener.ReceiverWCO->ProcessEvent(Listener.Function, (void*)Buffer.GetData());
+					Listener.ReceiverWCO->ProcessEvent(Listener.Function, PropData.PropertyPtr);	//(void*)Buffer.GetData()
 				}
 				else
 				{
@@ -610,7 +590,7 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, UStruct* Struct, vo
 			//No validation, e.g. vector-> rotator fill is accepted
 			else
 			{
-				Listener.ReceiverWCO->ProcessEvent(Listener.Function, (void*)Buffer.GetData());
+				Listener.ReceiverWCO->ProcessEvent(Listener.Function, PropData.PropertyPtr); //(void*)Buffer.GetData());
 			}
 		}
 	});
@@ -681,12 +661,12 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, UObject* ParamData)
 	}
 
 	EmitToListenersWithData(PropData, [&PropData, ParamWrapper](const FGESEventListener& Listener)
+	{
+		if (FunctionHasValidParams(Listener.Function, FNumericProperty::StaticClass(), PropData, Listener))
 		{
-			if (FunctionHasValidParams(Listener.Function, FNumericProperty::StaticClass(), PropData, Listener))
-			{
-				Listener.ReceiverWCO->ProcessEvent(Listener.Function, (void*)&ParamWrapper);// PropData.PropertyPtr);
-			}
-		});
+			Listener.ReceiverWCO->ProcessEvent(Listener.Function, (void*)&ParamWrapper);// PropData.PropertyPtr);
+		}
+	});
 
 	if (!EmitData.bPinned)
 	{
@@ -788,16 +768,39 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, bool ParamData)
 
 void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, const FName& ParamData)
 {
-	//meh, later 
+	FGESPropertyEmitContext PropData(EmitData);
 
-	FName MutableName = ParamData;
-	EmitToListenersWithData(EmitData, [&EmitData, &ParamData, &MutableName](const FGESEventListener& Listener)
+	//We have no property context, make a new property
+	FNameProperty* NameProperty =
+		new FNameProperty(FFieldVariant(EmitData.WorldContext->GetClass()),
+			TEXT("NameValue"),
+			EObjectFlags::RF_Public | EObjectFlags::RF_LoadCompleted);
+
+	//Wrap our FName into a buffer we can share
+	TArray<uint8> Buffer;
+	Buffer.SetNum(ParamData.StringBufferSize);
+
+	NameProperty->SetPropertyValue_InContainer(Buffer.GetData(), ParamData);
+
+	PropData.Property = NameProperty;
+	PropData.PropertyPtr = Buffer.GetData();
+	if (PropData.bPinned)
 	{
-		if (FunctionHasValidParams(Listener.Function, FNameProperty::StaticClass(), EmitData, Listener))
+		PropData.bHandleAllocation = true;
+	}
+
+	EmitToListenersWithData(PropData, [&PropData, ParamData](const FGESEventListener& Listener)
 		{
-			Listener.ReceiverWCO->ProcessEvent(Listener.Function, &MutableName);
-		}
-	});
+			if (FunctionHasValidParams(Listener.Function, FStrProperty::StaticClass(), PropData, Listener))
+			{
+				Listener.ReceiverWCO->ProcessEvent(Listener.Function, PropData.PropertyPtr);
+			}
+		});
+
+	if (!EmitData.bPinned)
+	{
+		delete NameProperty;
+	}
 }
 
 bool FGESHandler::EmitEvent(const FGESEmitContext& EmitData)
