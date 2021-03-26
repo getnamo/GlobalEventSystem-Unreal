@@ -210,8 +210,12 @@ class GLOBALEVENTSYSTEM_API UGlobalEventSystemBPLibrary : public UBlueprintFunct
 		
 		//Determine copy wildcard property variables
 		Stack.StepCompiledIn<FStructProperty>(&InProp);		
+		//Stack.Step(Stack.Object, NULL);
+		//InProp.Property = CastField<FProperty>(Stack.MostRecentProperty);
+		//InProp.PropertyPtr = Stack.MostRecentPropertyAddress;
 
 		//Copy the out struct property address
+		//Stack.StepCompiledIn<FStructProperty>(&OutProp);
 		Stack.Step(Stack.Object, NULL);
 		FProperty* ParameterProp = CastField<FProperty>(Stack.MostRecentProperty);
 		void* PropPtr = Stack.MostRecentPropertyAddress;
@@ -222,7 +226,7 @@ class GLOBALEVENTSYSTEM_API UGlobalEventSystemBPLibrary : public UBlueprintFunct
 
 		P_FINISH;
 		P_NATIVE_BEGIN;
-		bDidCopy = HandlePropToStruct(InProp, OutProp);	//todo: add return support
+		bDidCopy = HandlePropToStruct(InProp, OutProp);
 		P_NATIVE_END;
 
 		*(bool*)RESULT_PARAM = bDidCopy;

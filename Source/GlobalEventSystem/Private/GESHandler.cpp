@@ -540,15 +540,13 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, UStruct* Struct, vo
 {
 	bool bValidateStructs = Options.bValidateStructTypes;
 	FGESPropertyEmitContext PropData(EmitData);
-	
-	//We have no property context, make a new property
+
 	FStructProperty* StructProperty =
 		new FStructProperty(FFieldVariant(EmitData.WorldContext->GetClass()),
 			TEXT("StructValue"),
-			EObjectFlags::RF_Public | EObjectFlags::RF_LoadCompleted,// | EObjectFlags::RF_LoadCompleted,
-			0,
-			EPropertyFlags::CPF_Edit | CPF_BlueprintVisible,
-			Cast<UScriptStruct>(Struct));
+			EObjectFlags::RF_Public | EObjectFlags::RF_LoadCompleted);
+
+	StructProperty->Struct = (UScriptStruct*)Struct;
 
 	//Store our struct data in a buffer we can reference
 	TArray<uint8> Buffer;
@@ -564,7 +562,7 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, UStruct* Struct, vo
 		PropData.bHandleAllocation = true;
 	}
 
-	EmitToListenersWithData(PropData, [&PropData, Struct, &Buffer, bValidateStructs](const FGESEventListener& Listener)
+	EmitToListenersWithData(PropData, [&PropData, &Struct, &Buffer, &StructProperty, bValidateStructs](const FGESEventListener& Listener)
 	{
 		if (FunctionHasValidParams(Listener.Function, FStructProperty::StaticClass(), PropData, Listener))
 		{
@@ -574,10 +572,10 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, UStruct* Struct, vo
 				//optimization note: unroll the above function for structs to avoid double param lookup
 				TArray<FProperty*> Properties;
 				FunctionParameters(Listener.Function, Properties);
-				FStructProperty* StructProperty = CastField<FStructProperty>(Properties[0]);
-				if (StructProperty->Struct == Struct)
+				FStructProperty* SubStructProperty = CastField<FStructProperty>(Properties[0]);
+				if (SubStructProperty->Struct == Struct)
 				{
-					Listener.ReceiverWCO->ProcessEvent(Listener.Function, PropData.PropertyPtr);	//(void*)Buffer.GetData()
+					Listener.ReceiverWCO->ProcessEvent(Listener.Function, PropData.PropertyPtr);// PropData.PropertyPtr
 				}
 				else
 				{
