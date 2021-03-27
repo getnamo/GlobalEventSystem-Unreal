@@ -4,7 +4,17 @@ void FGESPinnedData::CopyPropertyToPinnedBuffer()
 {
 	//Copy this property data to temp
 	{
+		//Workaround for our generated struct
 		int32 Num = Property->GetSize();
+		/*if (Property->IsA<FStructProperty>())
+		{
+			FStructProperty* StructProp = CastField<FStructProperty>(Property);
+			if (StructProp->Struct)
+			{
+				Num = StructProp->Struct->PropertiesSize;
+			}
+		}*/
+		
 		PropertyData.SetNumUninitialized(Num);
 		FMemory::Memcpy(PropertyData.GetData(), PropertyPtr, Num);
 

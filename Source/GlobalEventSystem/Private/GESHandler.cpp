@@ -432,8 +432,15 @@ void FGESHandler::EmitToListenersWithData(const FGESPropertyEmitContext& EmitDat
 			
 			Event.PinnedData.bHandlePropertyDeletion = EmitData.bHandleAllocation;
 			Event.PinnedData.Property = EmitData.Property;
-			Event.PinnedData.PropertyPtr = EmitData.PropertyPtr;
-			Event.PinnedData.CopyPropertyToPinnedBuffer();
+
+			//only copy if ptrs are different or nullptr
+			if (EmitData.PropertyPtr != Event.PinnedData.PropertyPtr || 
+				Event.PinnedData.PropertyPtr == nullptr)
+			{
+				Event.PinnedData.PropertyPtr = EmitData.PropertyPtr;
+				Event.PinnedData.CopyPropertyToPinnedBuffer();
+			}
+		
 			//UE_LOG(LogTemp, Warning, TEXT("FGESHandler::EmitToListenersWithData Emitted a pinned event to an already pinned event. Pinned data updated."));
 		}
 		if (!Event.bPinned && EmitData.bPinned)
@@ -540,18 +547,44 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, UStruct* Struct, vo
 {
 	bool bValidateStructs = Options.bValidateStructTypes;
 	FGESPropertyEmitContext PropData(EmitData);
+	UClass* Class = EmitData.WorldContext->GetClass();
+
+	FField* OldProperty = Class->ChildProperties;
 
 	FStructProperty* StructProperty =
-		new FStructProperty(FFieldVariant(EmitData.WorldContext->GetClass()),
+		new FStructProperty(FFieldVariant(Class),
 			TEXT("StructValue"),
-			EObjectFlags::RF_Public | EObjectFlags::RF_LoadCompleted);
+			EObjectFlags::RF_Public | EObjectFlags::RF_LoadCompleted,
+			0, EPropertyFlags::CPF_BlueprintVisible | EPropertyFlags::CPF_Edit, 
+			(UScriptStruct*)Struct);	//added to ensure elementsize is set correctly
 
 	StructProperty->Struct = (UScriptStruct*)Struct;
 
+	//undo what we just did so it won't be traversed because of init
+	Class->ChildProperties = OldProperty;
+
+	//class ChildProperties
+	//NB: elementsize is incorrect when constructed like this
+	//we need this workaround so init isn't called
+	/*
+	* 	if (GetOwner<UObject>())
+	{
+		UField* OwnerField = GetOwnerChecked<UField>();
+		OwnerField->AddCppProperty(this);
+	}
+	else
+	{
+		FField* OwnerField = GetOwnerChecked<FField>();
+		OwnerField->AddCppProperty(this);
+	}
+}
+	*/
 	//Store our struct data in a buffer we can reference
 	TArray<uint8> Buffer;
 	int32 Size = Struct->GetStructureSize();
 	Buffer.SetNum(Size);
+
+	//StructProperty->CopyCompleteValue(Buffer.GetData(), StructPtr);
 
 	FPlatformMemory::Memcpy(Buffer.GetData(), StructPtr, Size);
 
@@ -564,10 +597,14 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, UStruct* Struct, vo
 
 	EmitToListenersWithData(PropData, [&PropData, &Struct, &Buffer, &StructProperty, bValidateStructs](const FGESEventListener& Listener)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("FGESHandler::EmitEvent struct Emit called"));
+
 		if (FunctionHasValidParams(Listener.Function, FStructProperty::StaticClass(), PropData, Listener))
 		{
 			if (bValidateStructs)
 			{
+				UE_LOG(LogTemp, Warning, TEXT("Validation emit"));
+
 				//For structs we can have different mismatching structs at this point check class types
 				//optimization note: unroll the above function for structs to avoid double param lookup
 				TArray<FProperty*> Properties;
@@ -588,7 +625,8 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, UStruct* Struct, vo
 			//No validation, e.g. vector-> rotator fill is accepted
 			else
 			{
-				Listener.ReceiverWCO->ProcessEvent(Listener.Function, PropData.PropertyPtr); //(void*)Buffer.GetData());
+				UE_LOG(LogTemp, Warning, TEXT("No validation emit"));
+				Listener.ReceiverWCO->ProcessEvent(Listener.Function, (void*)Buffer.GetData()); //PropData.PropertyPtr); //
 			}
 		}
 	});
@@ -834,6 +872,8 @@ bool FGESHandler::EmitPropertyEvent(const FGESPropertyEmitContext& EmitData)
 	{
 		EmitToListenersWithData(EmitData, [&EmitData](const FGESEventListener& Listener)
 			{
+				/*
+				Never gets called?
 				//C++ lambda case
 				if (Listener.bIsBoundToLambda && Listener.LambdaFunction != nullptr)
 				{
@@ -852,7 +892,7 @@ bool FGESHandler::EmitPropertyEvent(const FGESPropertyEmitContext& EmitData)
 					Wrapper.PropertyPtr = EmitData.PropertyPtr;
 					Listener.OnePropertyFunctionDelegate.ExecuteIfBound(Wrapper);
 					return;
-				}
+				}*/
 
 				//Neither lambda nor wildcard delegate, process no param prop
 				TFieldIterator<FProperty> Iterator(Listener.Function);
@@ -922,6 +962,8 @@ void FGESHandler::EmitSubPropertyEvent(const FGESPropertyEmitContext& EmitData)
 	{
 		if (FunctionHasValidParams(Listener.Function, EmitData.Property->StaticClass(), EmitData, Listener))
 		{
+			/*
+			Never gets called?
 			//Lambda Bind
 			if (Listener.bIsBoundToLambda && Listener.LambdaFunction != nullptr)
 			{
@@ -940,7 +982,7 @@ void FGESHandler::EmitSubPropertyEvent(const FGESPropertyEmitContext& EmitData)
 				Wrapper.PropertyPtr = EmitData.PropertyPtr;
 				Listener.OnePropertyFunctionDelegate.ExecuteIfBound(Wrapper);
 				return;
-			}
+			}*/
 
 			//Standard Function Name Bind
 			Listener.ReceiverWCO->ProcessEvent(Listener.Function, EmitData.PropertyPtr);
