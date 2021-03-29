@@ -467,6 +467,7 @@ void FGESHandler::EmitToListenersWithData(const FGESPropertyEmitContext& EmitDat
 		}
 		else
 		{
+			//potential issue: this opt bypasses specialization via datafillcallback
 			EmitToListenerWithData(EmitData, Listener, DataFillCallback);
 		}
 	}
@@ -482,6 +483,7 @@ void FGESHandler::EmitToListenersWithData(const FGESPropertyEmitContext& EmitDat
 			}
 			else
 			{
+				//potential issue: this opt bypasses specialization via datafillcallback
 				EmitToListenerWithData(EmitData, Listener, DataFillCallback);
 			}
 		}
