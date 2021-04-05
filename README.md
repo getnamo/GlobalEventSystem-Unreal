@@ -309,6 +309,8 @@ EmitStruct.Data = {1.2, 2.3};
 FGESHandler::DefaultHandler()->EmitEvent(FCustomTestData::StaticStruct(), &EmitStruct);
 ```
 
+NB: v0.7.0 has a bug where c++ struct emits to blueprint receivers do not properly fill. Use object wrappers until a fix is found.
+
 ### Receive an event
 
 The recommended method is using lambda receivers. Define an _FGESEventContext_ struct as the first param, then pass your overloaded lambda as the second type. NB: you can also alternatively organize your receivers with e.g. subclassing a _GESBaseReceiverComponent_, but these are only applicable for actor owners and thus not recommended over lambda receivers in general. 
