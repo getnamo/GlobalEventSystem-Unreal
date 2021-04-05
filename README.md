@@ -23,11 +23,11 @@ Emitting a struct from C++ to blueprint receiver will currently not fill properl
 
 ## How to use - Basics and API
 
-There are globally available functions that you can use to emit and bind events. At this time there are two variants for emitting (no parameters and one wildcard parameter) and one for binding events to your local functions. 
+There are globally available functions that you can use to emit and bind events. At this time there are two variants for emitting (no parameters and one wildcard parameter) and one for binding events to your local functions. There are also GameplayTag variants of these emitters and receivers for easy dropdown linking.
 
 Each emit is a multi-cast to all valid bound receivers. If the parameters don't match you'll be warned in the log with fairly verbose messages while emitting to all other valid targets. 
 
-Consider optionally using and extending GESReceiver components or attaching interfaces to your receiving function owners to keep messaging organized.
+Consider optionally using Gameplay tagged based emitters/receivers, or extending GESReceiver components to keep messaging organized.
 
 ### Emit Event
 
@@ -52,6 +52,32 @@ Break pin to set a new type of value.
 Keep in mind that the receiving listeners need to match the property type to receive the data.
 
 ![emit](https://i.imgur.com/8nXb5ya.png)
+
+#### ```GESEmitTagEvent```
+
+GameplayTag variant of GESEmitEvent. Instead of ```Domain``` and ```Event``` string you pick an event from a GameplayTag via dropdown
+
+##### Param: Domained Event Tag
+
+A GameplayTag similar to a namespace with reverse-DNS like structure. Select or make one from the drop down list. Any depth tag should be supported and will automatically translate to domain and event under the hood.
+
+##### Param: Pinned
+Whether the event should trigger for listeners added after the event has fired. Useful to communicate state.
+
+![image](https://user-images.githubusercontent.com/542365/113543315-f605a780-959a-11eb-9b70-83208ad2f002.png)
+
+
+#### ```GESEmitTagEventOneParam```
+
+##### Additional Param: Parameter Data
+Wildcard Property, will accept any single property type e.g. *int, float, byte, string, name, bool, struct,* and *object*. Wrap arrays and maps in a custom struct to emit more complex data types. 
+
+Break pin to set a new type of value. 
+
+Keep in mind that the receiving listeners need to match the property type to receive the data.
+
+![image](https://user-images.githubusercontent.com/542365/113543142-a030ff80-959a-11eb-93bd-7e9d5ec55a79.png)
+
 
 ### Bind Event
 
@@ -80,6 +106,14 @@ You can then convert your received wildcard property to a fixed type with a bool
 ![other conversions](https://i.imgur.com/iOtaJTq.png)
 
 NB: The struct property in the conversion node will appear gray until linked with a local/member variable via e.g. a Set call.
+
+
+### Bind Event via GameplayTag
+
+Similar to the emit ```GESEmitTagEvent```, you can use the GameplayTag based variants to bind to a delegate or function by name
+
+![image](https://user-images.githubusercontent.com/542365/113543759-e6d32980-959b-11eb-8839-97138b49c1de.png)
+
 
 ## Unbinding
 
