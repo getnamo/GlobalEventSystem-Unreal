@@ -200,6 +200,11 @@ void FGESHandler::AddListener(const FString& Domain, const FString& EventName, c
 
 FString FGESHandler::AddLambdaListener(FGESEventContext Context, TFunction<void(const FGESWildcardProperty&)> ReceivingLambda)
 {
+	if (Context.WorldContext == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("FGESHandler::AddLambdaListener No valid world context provided. Not added."));
+		return TEXT("Invalid");
+	}
 	FGESEventListener Listener;
 	Listener.bIsBoundToLambda = true;
 	Listener.LambdaFunction = ReceivingLambda;
