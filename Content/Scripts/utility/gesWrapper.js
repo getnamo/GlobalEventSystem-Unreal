@@ -34,9 +34,15 @@ class GESJsReceiver extends Root.ClassMap['GESJsReceiverBpActor']{
 			uniqueFunctionId);
 	}
 	emit(domain='global.default', event, data='', pinned=false){
-
-		//todo: deal with this
-		this.JsGESEmitEventOneParam(domain, event, data, pinned);
+		if(typeof data === 'string'){
+			this.JsGESEmitEventOneParamString(domain, event, data, pinned);
+		}
+		else{
+			this.JsGESEmitEventOneParamObject(domain, event, data, pinned);
+		}
+	}
+	unbindAll(){
+		GlobalEventSystemBPLibrary.GESUnbindAllEventsForContext(this);
 	}
 }
 
