@@ -8,7 +8,7 @@ UFUNCTIONS have to be defined at design time. Todo: add support for ~100?
 
 Super experimental atm
 */
-class GESJsReceiver extends Root.ClassMap['GESJsReceiverBpActor']{
+class GESJsReceiver extends JsOwner.ClassMap['GESJsReceiverBpActor']{
 	ctor(){
 		this.callbacks = {};
 	}
