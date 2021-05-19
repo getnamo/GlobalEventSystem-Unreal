@@ -41,6 +41,12 @@ class GESJsReceiver extends JsOwner.ClassMap['GESJsReceiverBpActor']{
 			this.JsGESEmitEventOneParamObject(domain, event, data, pinned);
 		}
 	}
+	wlog(text){
+		if(typeof text !== 'string'){
+			text = JSON.stringify(text);
+		}
+		this.emit('global.javascript', 'WorldLog', text);
+	}
 	unbindAll(){
 		GlobalEventSystemBPLibrary.GESUnbindAllEventsForContext(this);
 	}
