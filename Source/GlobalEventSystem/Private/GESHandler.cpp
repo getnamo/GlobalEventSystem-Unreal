@@ -861,13 +861,16 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, const GES_RAW_TEXT 
 
 bool FGESHandler::EmitPropertyEvent(const FGESPropertyEmitContext& EmitData)
 {
-	if (EmitData.WorldContext && !EmitData.WorldContext->IsValidLowLevelFast())
+	//UE_LOG(LogTemp, Log, TEXT("World is: %s"), *EmitData.WorldContext.Get()->GetName());
+
+	if (!EmitData.WorldContext || !EmitData.WorldContext->IsValidLowLevel())
 	{
 		//Remove this event, it's emit context is invalid
 		DeleteEvent(EmitData.Domain, EmitData.Event);
 		if (Options.bLogStaleRemovals)
 		{
-			UE_LOG(LogTemp, Log, TEXT("FGESHandler::EmitEvent stale event removed due to invalid world context. (Usually due to pinned events that haven't been unpinned."));
+			UE_LOG(LogTemp, Log, TEXT("FGESHandler::EmitEvent stale event removed due to invalid world context for <%s.%s>. (Usually due to pinned events that haven't been unpinned)"),
+				*EmitData.Domain, *EmitData.Event);
 		}
 		return false;
 	}
