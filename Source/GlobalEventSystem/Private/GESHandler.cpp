@@ -705,7 +705,7 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, UObject* ParamData)
 
 	EmitToListenersWithData(PropData, [&PropData, ParamWrapper](const FGESEventListener& Listener)
 	{
-		if (FunctionHasValidParams(Listener.Function, FNumericProperty::StaticClass(), PropData, Listener))
+		if (FunctionHasValidParams(Listener.Function, FObjectProperty::StaticClass(), PropData, Listener))
 		{
 			Listener.ReceiverWCO->ProcessEvent(Listener.Function, (void*)&ParamWrapper);// PropData.PropertyPtr);
 		}
