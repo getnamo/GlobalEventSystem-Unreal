@@ -2,19 +2,29 @@
 
 #include "GlobalEventSystem.h"
 
+#if WITH_EDITOR
+#include "Editor.h"
+#include "GESHandler.h"
+#endif
+
 #define LOCTEXT_NAMESPACE "FGlobalEventSystemModule"
 
 void FGlobalEventSystemModule::StartupModule()
 {
-	// This code will execute after your module is loaded into memory; the exact timing is specified in the .uplugin file per-module
-	
+#if WITH_EDITOR
+	EndPieDelegate = FEditorDelegates::BeginPIE.AddLambda([](bool boolSent)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Clearing FGESHandler"));
+		FGESHandler::Clear();		
+	});
+#endif
 }
 
 void FGlobalEventSystemModule::ShutdownModule()
 {
-	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
-	// we call this function before unloading the module.
-	
+#if WITH_EDITOR
+	FEditorDelegates::EndPIE.Remove(EndPieDelegate);
+#endif
 }
 
 #undef LOCTEXT_NAMESPACE

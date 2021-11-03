@@ -4,6 +4,11 @@
 
 TSharedPtr<FGESHandler> FGESHandler::PrivateDefaultHandler = MakeShareable(new FGESHandler());
 
+void FGESHandler::Clear()
+{
+	PrivateDefaultHandler = MakeShareable(new FGESHandler());
+}
+
 bool FGESHandler::FirstParamIsCppType(UFunction* Function, const FString& TypeString)
 {
 	TArray<FProperty*> Properties;
