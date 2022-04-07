@@ -1,21 +1,21 @@
-# global-event-system-ue4
+# GlobalEventSystem-Unreal
 A loosely coupled internal global event system (GES) plugin for the Unreal Engine. Aims to solve cross-map and cross-blueprint communication for reliable and inferable event flow. Should enable a publisher-observer pattern.
 
-[![GitHub release](https://img.shields.io/github/release/getnamo/global-event-system-ue4.svg)](https://github.com/getnamo/global-event-system-ue4/releases)
-[![Github All Releases](https://img.shields.io/github/downloads/getnamo/global-event-system-ue4/total.svg)](https://github.com/getnamo/global-event-system-ue4/releases)
+[![GitHub release](https://img.shields.io/github/release/getnamo/GlobalEventSystem-Unreal.svg)](https://github.com/getnamo/GlobalEventSystem-Unreal/releases)
+[![Github All Releases](https://img.shields.io/github/downloads/getnamo/GlobalEventSystem-Unreal/total.svg)](https://github.com/getnamo/GlobalEventSystem-Unreal/releases)
 
 Because the events are emitted to a dynamic map of listeners you can loosely link parts of your project without needing to redo boilerplate when you change parts of the code, dynamically change environments, or e.g. load a different submap. Fire something away, and if something is interested in that information, they can do something with it; optional.
 
-Questions? See https://github.com/getnamo/global-event-system-ue4/issues
+Questions? See https://github.com/getnamo/GlobalEventSystem-Unreal/issues
 
 Discussions? See [Unreal Thread](https://forums.unrealengine.com/development-discussion/engine-source-github/1691290-plugin-global-event-system)
 
 ### Current Important Issue
 
-Emitting a struct from C++ to blueprint receiver will currently not fill properly. All other emit/receive pairs work. Use object wrapper as workaround until fix is found. Issue: https://github.com/getnamo/global-event-system-ue4/issues/15
+Emitting a struct from C++ to blueprint receiver will currently not fill properly. All other emit/receive pairs work. Use object wrapper as workaround until fix is found. Issue: https://github.com/getnamo/GlobalEventSystem-Unreal/issues/15
 
 ## Quick Install & Setup ##
- 1. [Download Latest Release](https://github.com/getnamo/global-event-system-ue4/releases)
+ 1. [Download Latest Release](https://github.com/getnamo/GlobalEventSystem-Unreal/releases)
  2. Create new or choose project.
  3. Browse to your project folder (typically found at Documents/Unreal Project/{Your Project Root})
  4. Copy *Plugins* folder into your Project root.
@@ -500,7 +500,7 @@ Optionally you can also store the function and pass it instead of the lambda nam
 - Background threads. Current version is not thread safe and should be called only in your game thread.
 
 ## Possible Improvements
-See https://github.com/getnamo/global-event-system-ue4/issues for latest.
+See https://github.com/getnamo/GlobalEventSystem-Unreal/issues for latest.
 General enhancements:
 - Event with callback (get information from a listener)
 - Add optional logging utility to record event flow with possibly replay (attach middleware function)
