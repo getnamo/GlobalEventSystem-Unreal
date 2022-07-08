@@ -19,6 +19,7 @@ class GESJsReceiver extends JsOwner.ClassMap['GESJsReceiverBpActor']{
 		this.callbacks[uniqueId](property);
 	}
 
+	//returns a unique id for potential unbinding
 	bind(domain='global.default', event, callback){
 		//const uniqueKey = domain + '.' + event;
 		const uniqueFunctionId = this.NextUniqueReceiver()['NextUniqueFunction'];
@@ -32,6 +33,7 @@ class GESJsReceiver extends JsOwner.ClassMap['GESJsReceiverBpActor']{
 		this.JsGESBindEvent(domain,
 			event,
 			uniqueFunctionId);
+		return uniqueFunctionId;
 	}
 	emit(domain='global.default', event, data='', pinned=false){
 		if(typeof data === 'string'){
@@ -41,6 +43,12 @@ class GESJsReceiver extends JsOwner.ClassMap['GESJsReceiverBpActor']{
 			this.JsGESEmitEventOneParamObject(domain, event, data, pinned);
 		}
 	}
+
+	//NB: need to store the unique function id you get from bind
+	unbind(domain='global.default', event, uniqueFunctionId){
+		this.UnbindEvent(domain, event, uniqueFunctionId);
+	}
+
 	wlog(text){
 		if(typeof text !== 'string'){
 			text = JSON.stringify(text);
@@ -48,7 +56,8 @@ class GESJsReceiver extends JsOwner.ClassMap['GESJsReceiverBpActor']{
 		this.emit('global.javascript', 'WorldLog', text);
 	}
 	unbindAll(){
-		GlobalEventSystemBPLibrary.GESUnbindAllEventsForContext(this);
+		this.UnbindAllEvents();
+		//GlobalEventSystemBPLibrary.GESUnbindAllEventsForContext(this);
 	}
 }
 
