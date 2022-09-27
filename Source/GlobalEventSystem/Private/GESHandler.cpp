@@ -398,6 +398,11 @@ void FGESHandler::EmitToListenersWithData(const FGESPropertyEmitContext& EmitDat
 	}
 
 	UWorld* World = EmitData.WorldContext->GetWorld();
+	if (!World->IsValidLowLevelFast())
+	{
+		UE_LOG(LogTemp, Error, TEXT("FGESHandler::EmitToListenersWithData: Emitted event has no world!"));
+		return;
+	}
 
 	//Attach a world listener to each unique world
 	if (!WorldMap.Contains(World))
