@@ -563,14 +563,9 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, UStruct* Struct, vo
 
 	FField* OldProperty = Class->ChildProperties;
 
-	
-	//GetTransientPackage(), EmitData.WorldContext
-	//UScriptStruct* NewStruct = NewObject<UScriptStruct>(GetTransientPackage(), *Struct->GetName(), RF_NoFlags);
-
 	FStructProperty* StructProperty = new FStructProperty(FFieldVariant(Class), TEXT("StructProperty"), RF_NoFlags);
 	StructProperty->Struct = (UScriptStruct*)Struct;
 	StructProperty->ElementSize = Struct->GetStructureSize();
-	//NewStruct->AddCppProperty(StructProperty);
 
 	//undo what we just did so it won't be traversed because of init
 	Class->ChildProperties = OldProperty;
@@ -581,7 +576,6 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, UStruct* Struct, vo
 	Buffer.SetNum(Size);
 
 	//StructProperty->CopyCompleteValue(Buffer.GetData(), StructPtr);
-
 	FPlatformMemory::Memcpy(Buffer.GetData(), StructPtr, Size);
 
 	PropData.Property = StructProperty;
