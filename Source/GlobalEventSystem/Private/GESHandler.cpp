@@ -563,34 +563,18 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, UStruct* Struct, vo
 
 	FField* OldProperty = Class->ChildProperties;
 
-	FStructProperty* StructProperty =
-		new FStructProperty(FFieldVariant(Class),
-			TEXT("StructValue"),
-			EObjectFlags::RF_Public | EObjectFlags::RF_LoadCompleted,
-			0, EPropertyFlags::CPF_BlueprintVisible | EPropertyFlags::CPF_Edit, 
-			(UScriptStruct*)Struct);	//added to ensure elementsize is set correctly
+	
+	//GetTransientPackage(), EmitData.WorldContext
+	//UScriptStruct* NewStruct = NewObject<UScriptStruct>(GetTransientPackage(), *Struct->GetName(), RF_NoFlags);
 
+	FStructProperty* StructProperty = new FStructProperty(FFieldVariant(Class), TEXT("StructProperty"), RF_NoFlags);
 	StructProperty->Struct = (UScriptStruct*)Struct;
+	StructProperty->ElementSize = Struct->GetStructureSize();
+	//NewStruct->AddCppProperty(StructProperty);
 
 	//undo what we just did so it won't be traversed because of init
 	Class->ChildProperties = OldProperty;
 
-	//class ChildProperties
-	//NB: elementsize is incorrect when constructed like this
-	//we need this workaround so init isn't called
-	/*
-	* 	if (GetOwner<UObject>())
-	{
-		UField* OwnerField = GetOwnerChecked<UField>();
-		OwnerField->AddCppProperty(this);
-	}
-	else
-	{
-		FField* OwnerField = GetOwnerChecked<FField>();
-		OwnerField->AddCppProperty(this);
-	}
-}
-	*/
 	//Store our struct data in a buffer we can reference
 	TArray<uint8> Buffer;
 	int32 Size = Struct->GetStructureSize();
@@ -607,7 +591,7 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, UStruct* Struct, vo
 		PropData.bHandleAllocation = true;
 	}
 
-	EmitToListenersWithData(PropData, [&PropData, &Struct, &Buffer, &StructProperty, bValidateStructs](const FGESEventListener& Listener)
+	EmitToListenersWithData(PropData, [&PropData, &Struct, &Buffer, bValidateStructs](const FGESEventListener& Listener)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("FGESHandler::EmitEvent struct Emit called"));
 
@@ -624,7 +608,7 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, UStruct* Struct, vo
 				FStructProperty* SubStructProperty = CastField<FStructProperty>(Properties[0]);
 				if (SubStructProperty->Struct == Struct)
 				{
-					Listener.ReceiverWCO->ProcessEvent(Listener.Function, PropData.PropertyPtr);// PropData.PropertyPtr
+					Listener.ReceiverWCO->ProcessEvent(Listener.Function, PropData.PropertyPtr);
 				}
 				else
 				{
