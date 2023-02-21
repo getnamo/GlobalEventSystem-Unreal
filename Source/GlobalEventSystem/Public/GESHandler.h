@@ -26,6 +26,11 @@ public:
 	static TSharedPtr<FGESHandler> DefaultHandler();
 
 	/**
+	*   Clear all listeners and reset state
+	*/
+	static void Clear();
+
+	/**
 	*	Create an event in TargetDomain.TargetFunction. Does nothing if already existing.
 	*/
 	void CreateEvent(const FString& Domain, const FString& Event, bool bPinned = false);
