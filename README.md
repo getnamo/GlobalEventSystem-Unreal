@@ -8,7 +8,7 @@ Because the events are emitted to a dynamic map of listeners you can loosely lin
 
 Questions? See https://github.com/getnamo/GlobalEventSystem-Unreal/issues
 
-Discussions? See [Unreal Thread](https://forums.unrealengine.com/development-discussion/engine-source-github/1691290-plugin-global-event-system)
+Discussions? See [Unreal Thread](https://forums.unrealengine.com/t/plugin-global-event-system/134063)
 
 ### Current Important Issue
 
