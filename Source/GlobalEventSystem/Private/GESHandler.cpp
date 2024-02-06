@@ -35,7 +35,7 @@ bool FGESHandler::FirstParamIsSubclassOf(UFunction* Function, FFieldClass* Class
 
 FString FGESHandler::ListenerLogString(const FGESEventListener& Listener)
 {
-	return Listener.ReceiverWCO->GetName() + TEXT(":") + Listener.FunctionName;
+	return Listener.ReceiverWCO.Get()->GetName() + TEXT(":") + Listener.FunctionName;
 }
 
 FString FGESHandler::EventLogString(const FGESEvent& Event)
@@ -154,12 +154,12 @@ void FGESHandler::AddListener(const FString& Domain, const FString& EventName, c
 		Minimal.ReceiverWCO = Listener.ReceiverWCO;
 		ListenContext.Listener = Minimal;
 
-		if (!ReceiverMap.Contains(Listener.ReceiverWCO))
+		if (!ReceiverMap.Contains(Listener.ReceiverWCO.Get()))
 		{
 			TArray<FGESEventListenerWithContext> Array;
-			ReceiverMap.Add(Listener.ReceiverWCO, Array);
+			ReceiverMap.Add(Listener.ReceiverWCO.Get(), Array);
 		}
-		ReceiverMap[Listener.ReceiverWCO].Add(ListenContext);
+		ReceiverMap[Listener.ReceiverWCO.Get()].Add(ListenContext);
 
 		//if it's pinned re-emit it immediately to this listener
 		if (Event.bPinned) 
@@ -333,14 +333,14 @@ void FGESHandler::RemoveListener(const FString& Domain, const FString& Event, co
 	EventMap[KeyString].Listeners.Remove(Listener);
 
 	//Remove matched entry in receiver map
-	if (ReceiverMap.Contains(Listener.ReceiverWCO))
+	if (ReceiverMap.Contains(Listener.ReceiverWCO.Get()))
 	{
 		FGESEventListenerWithContext ContextListener;
 		ContextListener.Domain = Domain;
 		ContextListener.Event = Event;
 		ContextListener.Listener.FunctionName = Listener.FunctionName;
 		ContextListener.Listener.ReceiverWCO = Listener.ReceiverWCO;
-		ReceiverMap[Listener.ReceiverWCO].Remove(ContextListener);
+		ReceiverMap[Listener.ReceiverWCO.Get()].Remove(ContextListener);
 	}
 }
 
