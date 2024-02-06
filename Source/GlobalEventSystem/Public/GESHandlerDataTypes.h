@@ -32,7 +32,7 @@ struct FGESDynamicArg
 //Minimal definition to define a listener (for removal)
 struct FGESMinimalEventListener
 {
-	UObject* ReceiverWCO;	//WorldContextObject
+	TWeakObjectPtr<UObject> ReceiverWCO;	//WorldContextObject
 	FString FunctionName;
 
 	bool operator ==(FGESMinimalEventListener const& Other)
