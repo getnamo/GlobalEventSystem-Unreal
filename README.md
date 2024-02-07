@@ -10,6 +10,8 @@ Questions? See https://github.com/getnamo/GlobalEventSystem-Unreal/issues
 
 Discussions? See [Unreal Thread](https://forums.unrealengine.com/t/plugin-global-event-system/134063)
 
+[Discord Server](https://discord.gg/qfJUyxaW4s)
+
 ### Current Important Issue
 
 Emitting a struct from C++ to blueprint receiver will currently not fill properly. All other emit/receive pairs work. Use object wrapper as workaround until fix is found. Issue: https://github.com/getnamo/GlobalEventSystem-Unreal/issues/15
