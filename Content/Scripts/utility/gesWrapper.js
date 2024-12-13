@@ -53,7 +53,7 @@ class GESJsReceiver extends JsOwner.ClassMap['GESJsReceiverBpActor']{
 		if(typeof text !== 'string'){
 			text = JSON.stringify(text);
 		}
-		this.emit('global.javascript', 'WorldLog', text);
+		this.emit('global.console', 'log', text);
 	}
 	unbindAll(){
 		this.UnbindAllEvents();
