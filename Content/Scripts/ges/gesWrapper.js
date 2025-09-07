@@ -1,4 +1,4 @@
-const { inspect, tryLog, uclass } = require('utility/objectUtility.js');
+const uclass = require('uclass')().bind(this, global);
 
 /** 
 Wrapper class to enable some passthrough ges binding.
