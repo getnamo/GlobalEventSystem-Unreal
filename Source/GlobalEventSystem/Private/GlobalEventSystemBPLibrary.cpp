@@ -123,6 +123,23 @@ void UGlobalEventSystemBPLibrary::GESEmitEventOneParam(UObject* WorldContextObje
 
 void UGlobalEventSystemBPLibrary::GESEmitEvent(UObject* WorldContextObject, bool bPinned /*= false*/, const FString& Domain /*= TEXT("global.default")*/, const FString& EventName /*= TEXT("")*/)
 {
+	if (!WorldContextObject)
+	{
+		return;
+	}
+
+	UWorld* World = WorldContextObject->GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	// Only allow real gameplay worlds
+	if (!World->IsGameWorld())
+	{
+		return;
+	}
+	
 	FGESEmitContext EmitData;
 	EmitData.bPinned = bPinned;
 	EmitData.Domain = Domain;
