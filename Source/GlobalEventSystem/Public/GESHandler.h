@@ -125,6 +125,10 @@ public:
 	FGESHandler();
 	~FGESHandler();
 
+	//Events own their pinned data, handler is not copyable
+	FGESHandler(const FGESHandler&) = delete;
+	FGESHandler& operator=(const FGESHandler&) = delete;
+
 private:
 	static TSharedPtr<FGESHandler> PrivateDefaultHandler;
 
@@ -151,7 +155,7 @@ private:
 	//Key == TargetDomain.TargetFunction
 	TMap<FString, FGESEvent> EventMap;
 	TMap<UObject*, TArray<FGESEventListenerWithContext>> ReceiverMap;
-	TArray<FGESEventListener*> RemovalArray;
+	TArray<FGESEventListener> RemovalArray;	//copies, the listener may not outlive the emit (e.g. pinned SpecificTarget)
 
 	//Toggles
 	FGESGlobalOptions Options;

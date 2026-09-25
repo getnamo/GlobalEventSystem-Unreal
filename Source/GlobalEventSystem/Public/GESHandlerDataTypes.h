@@ -7,7 +7,6 @@ struct FGESPinnedData
 {
 	FProperty* Property;
 	void* PropertyPtr;
-	TArray<uint8> PropertyData;
 	bool bHandlePropertyDeletion;
 
 	FGESPinnedData()
@@ -15,13 +14,29 @@ struct FGESPinnedData
 		Property = nullptr;
 		PropertyPtr = nullptr;
 		bHandlePropertyDeletion = false;
+		PinnedBuffer = nullptr;
+		PinnedBufferProperty = nullptr;
 	}
 	~FGESPinnedData()
 	{
 		CleanupPinnedData();
 	}
+
+	//Owns a deep copy of the property value, so it can only be moved
+	FGESPinnedData(const FGESPinnedData&) = delete;
+	FGESPinnedData& operator=(const FGESPinnedData&) = delete;
+	FGESPinnedData(FGESPinnedData&& Other);
+	FGESPinnedData& operator=(FGESPinnedData&& Other);
+
+	/** Deep copies the value at PropertyPtr into an owned buffer and repoints PropertyPtr to it */
 	void CopyPropertyToPinnedBuffer();
 	void CleanupPinnedData();
+
+private:
+	void DestroyPinnedBuffer();
+
+	void* PinnedBuffer;
+	FProperty* PinnedBufferProperty;	//property the buffer value was initialized with
 };
 
 struct FGESDynamicArg

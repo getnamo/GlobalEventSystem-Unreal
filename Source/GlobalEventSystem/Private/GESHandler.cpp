@@ -83,11 +83,11 @@ TSharedPtr<FGESHandler> FGESHandler::DefaultHandler()
 
 void FGESHandler::CreateEvent(const FString& Domain, const FString& Event, bool bPinned /*= false*/)
 {
-	FGESEvent CreatedFunction;
+	//Constructed in place, events own their pinned data and can't be copied
+	FGESEvent& CreatedFunction = EventMap.Add(Key(Domain, Event));
 	CreatedFunction.Domain = Domain;
 	CreatedFunction.Event = Event;
 	CreatedFunction.bPinned = bPinned;
-	EventMap.Add(Key(Domain, Event), CreatedFunction);
 }
 
 void FGESHandler::DeleteEvent(const FString& Domain, const FString& Event)
@@ -171,6 +171,7 @@ void FGESHandler::AddListener(const FString& Domain, const FString& EventName, c
 
 			EmitData.Property = Event.PinnedData.Property;
 			EmitData.PropertyPtr = Event.PinnedData.PropertyPtr;
+			EmitData.bHandleAllocation = Event.PinnedData.bHandlePropertyDeletion;	//keep ownership of C++ allocated properties
 			EmitData.bPinned = Event.bPinned;
 			EmitData.SpecificTarget = (FGESEventListener*)&Listener;	//this immediate call should only be calling our listener
 			EmitData.WorldContext = Event.WorldContext;
@@ -478,7 +479,7 @@ void FGESHandler::EmitToListenersWithData(const FGESPropertyEmitContext& EmitDat
 		//stale listener, remove it
 		if (!Listener.ReceiverWCO->IsValidLowLevelFast())
 		{
-			RemovalArray.Add(&Listener);
+			RemovalArray.Add(Listener);
 		}
 		else
 		{
@@ -494,7 +495,7 @@ void FGESHandler::EmitToListenersWithData(const FGESPropertyEmitContext& EmitDat
 			//stale listener, remove it
 			if (!Listener.ReceiverWCO->IsValidLowLevelFast())
 			{
-				RemovalArray.Add(&Listener);
+				RemovalArray.Add(Listener);
 			}
 			else
 			{
@@ -507,9 +508,8 @@ void FGESHandler::EmitToListenersWithData(const FGESPropertyEmitContext& EmitDat
 	//Go through stale listeners and remove them
 	if (RemovalArray.Num() > 0)
 	{
-		for (int i = 0; i < RemovalArray.Num(); i++)
+		for (const FGESEventListener& Listener : RemovalArray)
 		{
-			FGESEventListener Listener = *RemovalArray[i];
 			Event.Listeners.Remove(Listener);
 		}
 		if (Options.bLogStaleRemovals)
@@ -564,42 +564,25 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, UStruct* Struct, vo
 {
 	bool bValidateStructs = Options.bValidateStructTypes;
 	FGESPropertyEmitContext PropData(EmitData);
-	UClass* Class = EmitData.WorldContext->GetClass();
 
-	FField* OldProperty = Class->ChildProperties;
-
-	FStructProperty* StructProperty = new FStructProperty(FFieldVariant(Class), TEXT("StructProperty"), RF_NoFlags);
+	FStructProperty* StructProperty = new FStructProperty(FFieldVariant(EmitData.WorldContext->GetClass()), TEXT("StructProperty"));
 	StructProperty->Struct = (UScriptStruct*)Struct;
-	StructProperty->ElementSize = Struct->GetStructureSize();
+	StructProperty->SetElementSize(Struct->GetStructureSize());
 
-	//undo what we just did so it won't be traversed because of init
-	Class->ChildProperties = OldProperty;
-
-	//Store our struct data in a buffer we can reference
-	TArray<uint8> Buffer;
-	int32 Size = Struct->GetStructureSize();
-	Buffer.SetNum(Size);
-
-	//StructProperty->CopyCompleteValue(Buffer.GetData(), StructPtr);
-	FPlatformMemory::Memcpy(Buffer.GetData(), StructPtr, Size);
-
+	//Emitter's struct is valid for the duration of the emit, pinning will deep copy it (see FGESPinnedData)
 	PropData.Property = StructProperty;
-	PropData.PropertyPtr = Buffer.GetData();
+	PropData.PropertyPtr = StructPtr;
 	if (PropData.bPinned)
 	{
 		PropData.bHandleAllocation = true;
 	}
 
-	EmitToListenersWithData(PropData, [&PropData, &Struct, &Buffer, bValidateStructs](const FGESEventListener& Listener)
+	EmitToListenersWithData(PropData, [&PropData, Struct, bValidateStructs](const FGESEventListener& Listener)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("FGESHandler::EmitEvent struct Emit called"));
-
 		if (FunctionHasValidParams(Listener.Function, FStructProperty::StaticClass(), PropData, Listener))
 		{
 			if (bValidateStructs)
 			{
-				UE_LOG(LogTemp, Warning, TEXT("Validation emit"));
-
 				//For structs we can have different mismatching structs at this point check class types
 				//optimization note: unroll the above function for structs to avoid double param lookup
 				TArray<FProperty*> Properties;
@@ -620,8 +603,7 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, UStruct* Struct, vo
 			//No validation, e.g. vector-> rotator fill is accepted
 			else
 			{
-				UE_LOG(LogTemp, Warning, TEXT("No validation emit"));
-				Listener.ReceiverWCO->ProcessEvent(Listener.Function, (void*)Buffer.GetData()); //PropData.PropertyPtr); //
+				Listener.ReceiverWCO->ProcessEvent(Listener.Function, PropData.PropertyPtr);
 			}
 		}
 	});
@@ -638,19 +620,15 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, const FString& Para
 	FGESPropertyEmitContext PropData(EmitData);
 
 	//We have no property context, make a new property
-	FStrProperty* StrProperty = 
+	FStrProperty* StrProperty =
 		new FStrProperty(FFieldVariant(EmitData.WorldContext->GetClass()),
-			TEXT("StringValue"),
-			EObjectFlags::RF_Public | EObjectFlags::RF_LoadCompleted);
+			TEXT("StringValue"));
 
-	//Wrap our FString into a buffer we can share
-	TArray<uint8> Buffer;
-	Buffer.SetNum(ParamData.GetAllocatedSize());
-
-	StrProperty->SetPropertyValue_InContainer(Buffer.GetData(), ParamData);
+	//Mutable copy we can share, pinning will deep copy it (see FGESPinnedData)
+	FString StringValue = ParamData;
 
 	PropData.Property = StrProperty;
-	PropData.PropertyPtr = Buffer.GetData();
+	PropData.PropertyPtr = &StringValue;
 	if (PropData.bPinned)
 	{
 		PropData.bHandleAllocation = true;
@@ -676,8 +654,7 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, UObject* ParamData)
 
 	FObjectProperty* ObjectProperty =
 		new FObjectProperty(FFieldVariant(EmitData.WorldContext->GetClass()),
-			TEXT("ObjectValue"),
-			EObjectFlags::RF_Public | EObjectFlags::RF_LoadCompleted);
+			TEXT("ObjectValue"));
 
 	//wrapper required to avoid copied pointer to become the first function
 	FGESDynamicArg ParamWrapper;
@@ -713,8 +690,7 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, float ParamData)
 
 	FFloatProperty* FloatProperty =
 		new FFloatProperty(FFieldVariant(EmitData.WorldContext->GetClass()),//WrapperProperty),
-			TEXT("FloatValue"),
-			EObjectFlags::RF_Public | EObjectFlags::RF_LoadCompleted);
+			TEXT("FloatValue"));
 
 	PropData.Property = FloatProperty;
 	PropData.PropertyPtr = &ParamData;// Buffer.GetData();
@@ -743,8 +719,7 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, int32 ParamData)
 
 	FIntProperty* IntProperty =
 		new FIntProperty(FFieldVariant(EmitData.WorldContext->GetClass()),
-			TEXT("IntValue"),
-			EObjectFlags::RF_Public | EObjectFlags::RF_LoadCompleted);
+			TEXT("IntValue"));
 
 	PropData.Property = IntProperty;
 	PropData.PropertyPtr = &ParamData;
@@ -773,8 +748,7 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, bool ParamData)
 
 	FBoolProperty* BoolProperty =
 		new FBoolProperty(FFieldVariant(EmitData.WorldContext->GetClass()),
-			TEXT("BoolValue"),
-			EObjectFlags::RF_Public | EObjectFlags::RF_LoadCompleted);
+			TEXT("BoolValue"));
 
 	PropData.Property = BoolProperty;
 	PropData.PropertyPtr = &ParamData;
@@ -804,17 +778,13 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, const FName& ParamD
 	//We have no property context, make a new property
 	FNameProperty* NameProperty =
 		new FNameProperty(FFieldVariant(EmitData.WorldContext->GetClass()),
-			TEXT("NameValue"),
-			EObjectFlags::RF_Public | EObjectFlags::RF_LoadCompleted);
+			TEXT("NameValue"));
 
-	//Wrap our FName into a buffer we can share
-	TArray<uint8> Buffer;
-	Buffer.SetNum(ParamData.StringBufferSize);
-
-	NameProperty->SetPropertyValue_InContainer(Buffer.GetData(), ParamData);
+	//Mutable copy we can share
+	FName NameValue = ParamData;
 
 	PropData.Property = NameProperty;
-	PropData.PropertyPtr = Buffer.GetData();
+	PropData.PropertyPtr = &NameValue;
 	if (PropData.bPinned)
 	{
 		PropData.bHandleAllocation = true;
@@ -822,7 +792,7 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, const FName& ParamD
 
 	EmitToListenersWithData(PropData, [&PropData, ParamData](const FGESEventListener& Listener)
 		{
-			if (FunctionHasValidParams(Listener.Function, FStrProperty::StaticClass(), PropData, Listener))
+			if (FunctionHasValidParams(Listener.Function, FNameProperty::StaticClass(), PropData, Listener))
 			{
 				Listener.ReceiverWCO->ProcessEvent(Listener.Function, PropData.PropertyPtr);
 			}

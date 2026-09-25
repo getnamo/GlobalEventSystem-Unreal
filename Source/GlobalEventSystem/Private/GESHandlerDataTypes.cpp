@@ -1,48 +1,85 @@
 #include "GESHandlerDataTypes.h"
 
+FGESPinnedData::FGESPinnedData(FGESPinnedData&& Other)
+	: FGESPinnedData()
+{
+	*this = MoveTemp(Other);
+}
+
+FGESPinnedData& FGESPinnedData::operator=(FGESPinnedData&& Other)
+{
+	if (this != &Other)
+	{
+		CleanupPinnedData();
+
+		Property = Other.Property;
+		PropertyPtr = Other.PropertyPtr;
+		bHandlePropertyDeletion = Other.bHandlePropertyDeletion;
+		PinnedBuffer = Other.PinnedBuffer;
+		PinnedBufferProperty = Other.PinnedBufferProperty;
+
+		//Other no longer owns anything
+		Other.Property = nullptr;
+		Other.PropertyPtr = nullptr;
+		Other.bHandlePropertyDeletion = false;
+		Other.PinnedBuffer = nullptr;
+		Other.PinnedBufferProperty = nullptr;
+	}
+	return *this;
+}
+
 void FGESPinnedData::CopyPropertyToPinnedBuffer()
 {
-	//Copy this property data to temp
+	if (Property == nullptr || PropertyPtr == nullptr || PropertyPtr == PinnedBuffer)
 	{
-		//Workaround for our generated struct
-		int32 Num = Property->GetSize();
-		/*if (Property->IsA<FStructProperty>())
-		{
-			FStructProperty* StructProp = CastField<FStructProperty>(Property);
-			if (StructProp->Struct)
-			{
-				Num = StructProp->Struct->PropertiesSize;
-			}
-		}*/
-		
-		PropertyData.SetNumUninitialized(Num);
-		FMemory::Memcpy(PropertyData.GetData(), PropertyPtr, Num);
-
-		//reset pointer to new copy
-		PropertyPtr = PropertyData.GetData();
+		return;
 	}
+
+	//Deep copy via the property so heap backed members (FString, TArray, etc) outlive the emitter's memory.
+	//A raw memcpy here would leave the pinned value pointing at memory the emitter frees after emitting.
+	void* NewBuffer = FMemory::Malloc(Property->GetSize(), Property->GetMinAlignment());
+	Property->InitializeValue(NewBuffer);
+	Property->CopyCompleteValue(NewBuffer, PropertyPtr);
+
+	DestroyPinnedBuffer();
+	PinnedBuffer = NewBuffer;
+	PinnedBufferProperty = Property;
+
+	//reset pointer to new copy
+	PropertyPtr = PinnedBuffer;
+}
+
+void FGESPinnedData::DestroyPinnedBuffer()
+{
+	if (PinnedBuffer)
+	{
+		if (PinnedBufferProperty)
+		{
+			PinnedBufferProperty->DestroyValue(PinnedBuffer);
+		}
+		FMemory::Free(PinnedBuffer);
+	}
+	PinnedBuffer = nullptr;
+	PinnedBufferProperty = nullptr;
 }
 
 void FGESPinnedData::CleanupPinnedData()
 {
-	PropertyData.Empty();
+	//Destroy the value before the property that describes it
+	DestroyPinnedBuffer();
 
 	//Some properties are being allocated in C++, we need to clean them here
 	if (bHandlePropertyDeletion)
 	{
-		if (Property != nullptr)
-		{
-			Property->SetFlags(RF_BeginDestroyed);
-		}
 		delete Property;
 	}
 	Property = nullptr;
 	PropertyPtr = nullptr;
+	bHandlePropertyDeletion = false;
 }
 
 FGESEvent::FGESEvent()
 {
-	PinnedData = FGESPinnedData();
 }
 
 FGESPropertyEmitContext::FGESPropertyEmitContext()
@@ -63,6 +100,7 @@ FGESPropertyEmitContext::FGESPropertyEmitContext(const FGESEmitContext& Other)
 	Property = nullptr;
 	PropertyPtr = nullptr;
 	SpecificTarget = nullptr;
+	bHandleAllocation = false;
 }
 
 FGESEvent::FGESEvent(const FGESEmitContext& Other)
@@ -81,7 +119,6 @@ FGESMinimalEventListener::FGESMinimalEventListener()
 
 FGESEventListener::FGESEventListener()
 {
-	FGESMinimalEventListener();
 	Function = nullptr;
 	bIsBoundToDelegate = false;
 	bIsBoundToLambda = false;
@@ -89,6 +126,7 @@ FGESEventListener::FGESEventListener()
 }
 
 FGESEventListener::FGESEventListener(const FGESMinimalEventListener& Minimal)
+	: FGESEventListener()
 {
 	ReceiverWCO = Minimal.ReceiverWCO;
 	FunctionName = Minimal.FunctionName;
