@@ -134,7 +134,8 @@ FGESEventListener::FGESEventListener(const FGESMinimalEventListener& Minimal)
 
 bool FGESEventListener::LinkFunction()
 {
-	Function = ReceiverWCO->FindFunction(FName(*FunctionName));
+	UObject* Receiver = ReceiverWCO.Get();
+	Function = Receiver ? Receiver->FindFunction(FName(*FunctionName)) : nullptr;
 	return IsValidListener();
 }
 

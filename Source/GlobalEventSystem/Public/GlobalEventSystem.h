@@ -15,6 +15,6 @@ public:
 private:
 
 #if WITH_EDITOR
-	FDelegateHandle EndPieDelegate;
+	FDelegateHandle BeginPieDelegate;
 #endif
 };

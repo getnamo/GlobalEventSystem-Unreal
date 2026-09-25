@@ -12,9 +12,9 @@
 void FGlobalEventSystemModule::StartupModule()
 {
 #if WITH_EDITOR
-	EndPieDelegate = FEditorDelegates::BeginPIE.AddLambda([](bool boolSent)
+	BeginPieDelegate = FEditorDelegates::BeginPIE.AddLambda([](bool bIsSimulating)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Clearing FGESHandler"));
+		UE_LOG(LogTemp, Verbose, TEXT("Clearing FGESHandler"));
 		FGESHandler::Clear();		
 	});
 #endif
@@ -23,7 +23,7 @@ void FGlobalEventSystemModule::StartupModule()
 void FGlobalEventSystemModule::ShutdownModule()
 {
 #if WITH_EDITOR
-	FEditorDelegates::EndPIE.Remove(EndPieDelegate);
+	FEditorDelegates::BeginPIE.Remove(BeginPieDelegate);
 #endif
 }
 

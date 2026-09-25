@@ -20,7 +20,11 @@ void AGESWorldListenerActor::BeginPlay()
 
 void AGESWorldListenerActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	OnEndPlay();
+	//Unset when this actor wasn't spawned by a live handler, e.g. an older GES version saved one into a level
+	if (OnEndPlay)
+	{
+		OnEndPlay();
+	}
 	Super::EndPlay(EndPlayReason);
 }
 

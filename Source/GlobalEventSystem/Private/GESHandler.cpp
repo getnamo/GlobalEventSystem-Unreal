@@ -35,7 +35,8 @@ bool FGESHandler::FirstParamIsSubclassOf(UFunction* Function, FFieldClass* Class
 
 FString FGESHandler::ListenerLogString(const FGESEventListener& Listener)
 {
-	return Listener.ReceiverWCO.Get()->GetName() + TEXT(":") + Listener.FunctionName;
+	const UObject* Receiver = Listener.ReceiverWCO.Get();
+	return (Receiver ? Receiver->GetName() : TEXT("(invalid receiver)")) + TEXT(":") + Listener.FunctionName;
 }
 
 FString FGESHandler::EventLogString(const FGESEvent& Event)
@@ -109,6 +110,7 @@ void FGESHandler::DeleteEvent(const FString& DomainAndEvent)
 
 	//remove the event
 	EventMap.Remove(DomainAndEvent);
+	ListenerRemovalCount++;
 }
 
 bool FGESHandler::HasEvent(const FString& Domain, const FString& Event)
@@ -174,7 +176,7 @@ void FGESHandler::AddListener(const FString& Domain, const FString& EventName, c
 			EmitData.bHandleAllocation = Event.PinnedData.bHandlePropertyDeletion;	//keep ownership of C++ allocated properties
 			EmitData.bPinned = Event.bPinned;
 			EmitData.SpecificTarget = (FGESEventListener*)&Listener;	//this immediate call should only be calling our listener
-			EmitData.WorldContext = Event.WorldContext;
+			EmitData.WorldContext = Event.WeakWorldContext.Get();	//nullptr if the emitter is gone, handled as stale below
 			
 			//did we fail to emit?
 			if (!EmitPropertyEvent(EmitData))
@@ -193,9 +195,9 @@ void FGESHandler::AddListener(const FString& Domain, const FString& EventName, c
 		//TODO: add warnings in case of invalid delegate/lambda function binds
 
 		//Not valid, emit warnings
-		if (Listener.ReceiverWCO->IsValidLowLevelFast())
+		if (const UObject* Receiver = Listener.ReceiverWCO.Get())
 		{
-			UE_LOG(LogTemp, Warning, TEXT("FGESHandler::AddListener Warning: \n%s does not have the function '%s'. Attempted to bind to GESEvent %s.%s"), *Listener.ReceiverWCO->GetFullName(), *Listener.FunctionName, *Domain, *EventName);
+			UE_LOG(LogTemp, Warning, TEXT("FGESHandler::AddListener Warning: \n%s does not have the function '%s'. Attempted to bind to GESEvent %s.%s"), *Receiver->GetFullName(), *Listener.FunctionName, *Domain, *EventName);
 		}
 		else
 		{
@@ -332,6 +334,7 @@ void FGESHandler::RemoveListener(const FString& Domain, const FString& Event, co
 
 	//Remove from main listener map
 	EventMap[KeyString].Listeners.Remove(Listener);
+	ListenerRemovalCount++;
 
 	//Remove matched entry in receiver map
 	if (ReceiverMap.Contains(Listener.ReceiverWCO.Get()))
@@ -370,6 +373,11 @@ void FGESHandler::RemoveLambdaListener(FGESEventContext BindInfo, TFunction<void
 	Listener.bIsBoundToLambda = true;
 	Listener.LambdaFunction = ReceivingLambda;
 	Listener.ReceiverWCO = BindInfo.WorldContext;
+	if (!Listener.ReceiverWCO.IsValid())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("FGESHandler::RemoveLambdaListener No valid world context provided. Ignored."));
+		return;
+	}
 
 	FString FunctionPtr = FString::Printf(TEXT("%d"), (void*)&ReceivingLambda);
 	Listener.FunctionName = Listener.ReceiverWCO->GetName() + TEXT(".lambda.") + FunctionPtr;
@@ -395,43 +403,36 @@ void FGESHandler::EmitToListenersWithData(const FGESPropertyEmitContext& EmitDat
 		CreateEvent(EmitData.Domain, EmitData.Event, false);
 	}
 	FGESEvent& Event = EventMap[KeyString];
-	Event.WorldContext = EmitData.WorldContext;
 
 	if (EmitData.WorldContext == nullptr)
 	{
 		UE_LOG(LogTemp, Error, TEXT("FGESHandler::EmitToListenersWithData: Emitted event has no world context!"));
 		return;
 	}
+	Event.WeakWorldContext = EmitData.WorldContext;
 
 	UWorld* World = EmitData.WorldContext->GetWorld();
-	if (!World->IsValidLowLevelFast())
+	if (World == nullptr)
 	{
 		UE_LOG(LogTemp, Error, TEXT("FGESHandler::EmitToListenersWithData: Emitted event has no world!"));
 		return;
 	}
 
-	//Attach a world listener to each unique world
-	if (!WorldMap.Contains(World))
+	//Track each game world so its events are cleaned up when it ends. Editor worlds are skipped, a listener
+	//actor spawned there gets saved with the level or copied into PIE without its OnEndPlay callback.
+	if (World->IsGameWorld())
 	{
-		AGESWorldListenerActor* WorldListener = World->SpawnActor<AGESWorldListenerActor>();
-		WorldListener->OnEndPlay = [this, WorldListener, World]
+		TWeakObjectPtr<AGESWorldListenerActor>& WorldListener = WorldMap.FindOrAdd(World);
+		if (!WorldListener.IsValid())
 		{
-			for (const FString& EventKey : WorldListener->WorldEvents)
-			{
-				DeleteEvent(EventKey);
-			}
-			WorldListener->WorldEvents.Empty();
-
-			//For now always clear receiver map if any world ends
-			ReceiverMap.Empty();
-
-			WorldMap.Remove(World);
-		};
-		WorldMap.Add(World, WorldListener);
+			WorldListener = SpawnWorldListener(World);
+		}
+		if (WorldListener.IsValid())
+		{
+			//ensure this event is registered
+			WorldListener->WorldEvents.Add(KeyString);
+		}
 	}
-
-	//ensure this event is registered
-	WorldMap[World]->WorldEvents.Add(KeyString);
 
 	//is there a property to pin?
 	if (EmitData.Property)
@@ -470,59 +471,104 @@ void FGESHandler::EmitToListenersWithData(const FGESPropertyEmitContext& EmitDat
 	}
 	Event.bPinned = EmitData.bPinned;
 
-
-	//only emit to this target
+	//Emit to a snapshot: receivers may bind, unbind or emit other events while we iterate, which changes
+	//Event.Listeners or reallocates EventMap (invalidating Event). Don't touch Event past this point.
+	TArray<FGESEventListener> Listeners;
 	if (EmitData.SpecificTarget)
 	{
-		FGESEventListener Listener = *EmitData.SpecificTarget;
-
-		//stale listener, remove it
-		if (!Listener.ReceiverWCO->IsValidLowLevelFast())
-		{
-			RemovalArray.Add(Listener);
-		}
-		else
-		{
-			//potential issue: this opt bypasses specialization via datafillcallback
-			EmitToListenerWithData(EmitData, Listener, DataFillCallback);
-		}
+		//only emit to this target
+		Listeners.Add(*EmitData.SpecificTarget);
 	}
-	//emit to all targets
 	else
 	{
-		for (FGESEventListener& Listener : Event.Listeners)
+		Listeners = Event.Listeners;
+	}
+	const uint64 RemovalCountAtStart = ListenerRemovalCount;
+
+	TArray<FGESEventListener> StaleListeners;
+	for (const FGESEventListener& Listener : Listeners)
+	{
+		//stale listener, remove it
+		if (!Listener.ReceiverWCO.IsValid())
 		{
-			//stale listener, remove it
-			if (!Listener.ReceiverWCO->IsValidLowLevelFast())
+			StaleListeners.Add(Listener);
+			continue;
+		}
+
+		//skip listeners an earlier receiver unbound during this emit
+		if (!EmitData.SpecificTarget && ListenerRemovalCount != RemovalCountAtStart)
+		{
+			const FGESEvent* LiveEvent = EventMap.Find(KeyString);
+			if (LiveEvent == nullptr || !LiveEvent->Listeners.Contains(Listener))
 			{
-				RemovalArray.Add(Listener);
-			}
-			else
-			{
-				//potential issue: this opt bypasses specialization via datafillcallback
-				EmitToListenerWithData(EmitData, Listener, DataFillCallback);
+				continue;
 			}
 		}
+
+		//potential issue: this opt bypasses specialization via datafillcallback
+		EmitToListenerWithData(EmitData, Listener, DataFillCallback);
 	}
 
-	//Go through stale listeners and remove them
-	if (RemovalArray.Num() > 0)
+	//Go through stale listeners and remove them, re-finding the event in case it moved or was deleted
+	if (StaleListeners.Num() > 0)
 	{
-		for (const FGESEventListener& Listener : RemovalArray)
+		if (FGESEvent* LiveEvent = EventMap.Find(KeyString))
 		{
-			Event.Listeners.Remove(Listener);
+			for (const FGESEventListener& Listener : StaleListeners)
+			{
+				LiveEvent->Listeners.Remove(Listener);
+			}
 		}
+		ListenerRemovalCount++;
+
 		if (Options.bLogStaleRemovals)
 		{
-			UE_LOG(LogTemp, Log, TEXT("FGESHandler::EmitEvent: auto-removed %d stale listeners."), RemovalArray.Num());
+			UE_LOG(LogTemp, Log, TEXT("FGESHandler::EmitEvent: auto-removed %d stale listeners."), StaleListeners.Num());
 		}
-		RemovalArray.Empty();
 	}
+}
+
+AGESWorldListenerActor* FGESHandler::SpawnWorldListener(UWorld* World)
+{
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.ObjectFlags |= RF_Transient;	//never saved with a level or duplicated into PIE
+
+	AGESWorldListenerActor* WorldListener = World->SpawnActor<AGESWorldListenerActor>(SpawnParams);
+	if (WorldListener == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("FGESHandler::SpawnWorldListener: failed to spawn world listener, events in %s won't be cleaned up on world end."), *World->GetName());
+		return nullptr;
+	}
+
+	WorldListener->OnEndPlay = [this, WorldListener, World]
+	{
+		for (const FString& EventKey : WorldListener->WorldEvents)
+		{
+			DeleteEvent(EventKey);
+		}
+		WorldListener->WorldEvents.Empty();
+
+		//For now always clear receiver map if any world ends
+		ReceiverMap.Empty();
+
+		WorldMap.Remove(World);
+	};
+	return WorldListener;
+}
+
+bool FGESHandler::HasValidWorldContext(const FGESEmitContext& EmitData)
+{
+	if (!IsValid(EmitData.WorldContext))
+	{
+		UE_LOG(LogTemp, Error, TEXT("FGESHandler::EmitEvent %s has no valid world context, emit skipped."), *EmitEventLogString(EmitData));
+		return false;
+	}
+	return true;
 }
 
 bool FGESHandler::EmitToListenerWithData(const FGESPropertyEmitContext& EmitData, const FGESEventListener& Listener, TFunction<void(const FGESEventListener&)>& DataFillCallback)
 {
-	if (Listener.ReceiverWCO->IsValidLowLevelFast())
+	if (Listener.ReceiverWCO.IsValid())
 	{
 		if (Listener.bIsBoundToLambda && Listener.LambdaFunction != nullptr)
 		{
@@ -562,6 +608,11 @@ bool FGESHandler::EmitToListenerWithData(const FGESPropertyEmitContext& EmitData
 
 void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, UStruct* Struct, void* StructPtr)
 {
+	if (!HasValidWorldContext(EmitData))
+	{
+		return;
+	}
+
 	bool bValidateStructs = Options.bValidateStructTypes;
 	FGESPropertyEmitContext PropData(EmitData);
 
@@ -617,6 +668,11 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, UStruct* Struct, vo
 
 void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, const FString& ParamData)
 {
+	if (!HasValidWorldContext(EmitData))
+	{
+		return;
+	}
+
 	FGESPropertyEmitContext PropData(EmitData);
 
 	//We have no property context, make a new property
@@ -650,6 +706,11 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, const FString& Para
 
 void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, UObject* ParamData)
 {
+	if (!HasValidWorldContext(EmitData))
+	{
+		return;
+	}
+
 	FGESPropertyEmitContext PropData(EmitData);
 
 	FObjectProperty* ObjectProperty =
@@ -684,6 +745,11 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, UObject* ParamData)
 
 void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, float ParamData)
 {
+	if (!HasValidWorldContext(EmitData))
+	{
+		return;
+	}
+
 	FGESPropertyEmitContext PropData(EmitData);
 
 	FGESWildcardProperty WrapperProperty;
@@ -715,6 +781,11 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, float ParamData)
 
 void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, int32 ParamData)
 {
+	if (!HasValidWorldContext(EmitData))
+	{
+		return;
+	}
+
 	FGESPropertyEmitContext PropData(EmitData);
 
 	FIntProperty* IntProperty =
@@ -744,6 +815,11 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, int32 ParamData)
 
 void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, bool ParamData)
 {
+	if (!HasValidWorldContext(EmitData))
+	{
+		return;
+	}
+
 	FGESPropertyEmitContext PropData(EmitData);
 
 	FBoolProperty* BoolProperty =
@@ -773,6 +849,11 @@ void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, bool ParamData)
 
 void FGESHandler::EmitEvent(const FGESEmitContext& EmitData, const FName& ParamData)
 {
+	if (!HasValidWorldContext(EmitData))
+	{
+		return;
+	}
+
 	FGESPropertyEmitContext PropData(EmitData);
 
 	//We have no property context, make a new property
@@ -821,7 +902,7 @@ bool FGESHandler::EmitPropertyEvent(const FGESPropertyEmitContext& EmitData)
 {
 	//UE_LOG(LogTemp, Log, TEXT("World is: %s"), *EmitData.WorldContext.Get()->GetName());
 
-	if (!EmitData.WorldContext || !EmitData.WorldContext->IsValidLowLevel())
+	if (!IsValid(EmitData.WorldContext))
 	{
 		//Remove this event, it's emit context is invalid
 		DeleteEvent(EmitData.Domain, EmitData.Event);
@@ -970,7 +1051,7 @@ FString FGESHandler::Key(const FString& Domain, const FString& Event)
 
 FGESHandler::FGESHandler()
 {
-
+	ListenerRemovalCount = 0;
 }
 
 FGESHandler::~FGESHandler()
@@ -984,4 +1065,13 @@ FGESHandler::~FGESHandler()
 		}
 	}*/
 	EventMap.Empty();
+
+	//World listeners outliving us (e.g. after Clear()) must not call back into this handler
+	for (TPair<UWorld*, TWeakObjectPtr<AGESWorldListenerActor>>& Pair : WorldMap)
+	{
+		if (AGESWorldListenerActor* WorldListener = Pair.Value.Get())
+		{
+			WorldListener->OnEndPlay = nullptr;
+		}
+	}
 }

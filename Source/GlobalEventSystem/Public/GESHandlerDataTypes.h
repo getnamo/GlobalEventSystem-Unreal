@@ -50,7 +50,7 @@ struct FGESMinimalEventListener
 	TWeakObjectPtr<UObject> ReceiverWCO;	//WorldContextObject
 	FString FunctionName;
 
-	bool operator ==(FGESMinimalEventListener const& Other)
+	bool operator ==(FGESMinimalEventListener const& Other) const
 	{
 		return (Other.ReceiverWCO == ReceiverWCO) && (Other.FunctionName == FunctionName);
 	}
@@ -103,6 +103,9 @@ struct FGESEvent : FGESEmitContext
 {
 	//If pinned an event will emit the moment you add a listener if it has been already fired once
 	FGESPinnedData PinnedData;
+
+	//Emitter of the last emit, weak so pinned replays can detect a destroyed emitter
+	TWeakObjectPtr<UObject> WeakWorldContext;
 
 	TArray<FGESEventListener> Listeners;
 

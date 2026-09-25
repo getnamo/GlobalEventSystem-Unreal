@@ -141,6 +141,12 @@ private:
 	//internal overloads
 	void EmitSubPropertyEvent(const FGESPropertyEmitContext& EmitData);
 
+	//spawns the transient actor used to clean up this world's events when it ends
+	AGESWorldListenerActor* SpawnWorldListener(UWorld* World);
+
+	//C++ emits need a live world context to build their property, logs otherwise
+	static bool HasValidWorldContext(const FGESEmitContext& EmitData);
+
 	//can check function signature vs e.g. FString
 	static bool FirstParamIsCppType(UFunction* Function, const FString& TypeString);
 	static bool FirstParamIsSubclassOf(UFunction* Function, FFieldClass* ClassType);
@@ -155,10 +161,12 @@ private:
 	//Key == TargetDomain.TargetFunction
 	TMap<FString, FGESEvent> EventMap;
 	TMap<UObject*, TArray<FGESEventListenerWithContext>> ReceiverMap;
-	TArray<FGESEventListener> RemovalArray;	//copies, the listener may not outlive the emit (e.g. pinned SpecificTarget)
+	//Bumped whenever listeners are removed, lets an emit in progress detect receivers unbinding during it
+	uint64 ListenerRemovalCount;
 
 	//Toggles
 	FGESGlobalOptions Options;
 
-	TMap<UWorld*, AGESWorldListenerActor*> WorldMap;
+	//Weak, a world can be torn down without its listener actor getting EndPlay
+	TMap<UWorld*, TWeakObjectPtr<AGESWorldListenerActor>> WorldMap;
 };
